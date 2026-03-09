@@ -31,6 +31,45 @@ public class BookmarkController {
         return bookmarkService.create(request, currentUserId(userDetails));
     }
 
+    @GetMapping
+    public PageResponse<BookmarkResponse> list(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size,
+            @RequestParam(required = false) ContentType type,
+            @AuthenticationPrincipal UserDetails userDetails) {
+        PageRequest pageable = PageRequest.of(page, size, Sort.by("createdAt").descending());
+        return bookmarkService.listForUser(currentUserId(userDetails), type, pageable);
+    }
+
+    @GetMapping("/{id}")
+    public BookmarkResponse get(@PathVariable UUID id,
+                                @AuthenticationPrincipal UserDetails userDetails) {
+        return bookmarkService.getById(id, currentUserId(userDetails));
+    }
+
+    @PatchMapping("/{id}")
+    public BookmarkResponse update(@PathVariable UUID id,
+                                   @Valid @RequestBody BookmarkUpdateRequest request,
+                                   @AuthenticationPrincipal UserDetails userDetails) {
+        return bookmarkService.update(id, request, currentUserId(userDetails));
+    }
+
+    @DeleteMapping("/{id}")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void delete(@PathVariable UUID id,
+                       @AuthenticationPrincipal UserDetails userDetails) {
+        bookmarkService.delete(id, currentUserId(userDetails));
+    }
+
+    @GetMapping("/search")
+    public PageResponse<BookmarkResponse> search(
+            @RequestParam String q,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size,
+            @AuthenticationPrincipal UserDetails userDetails) {
+        PageRequest pageable = PageRequest.of(page, size);
+        return bookmarkService.search(currentUserId(userDetails), q, pageable);
+    }
 
     private UUID currentUserId(UserDetails userDetails) {
         return UUID.fromString(userDetails.getUsername());
