@@ -1,0 +1,98 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 240 33% 4%;
+    --foreground: 214 32% 91%;
+
+    --card: 240 20% 9%;
+    --card-foreground: 214 32% 91%;
+
+    --popover: 240 20% 9%;
+    --popover-foreground: 214 32% 91%;
+
+    --primary: 263 70% 58%;
+    --primary-foreground: 0 0% 100%;
+
+    --secondary: 187 94% 43%;
+    --secondary-foreground: 0 0% 100%;
+
+    --muted: 240 14% 14%;
+    --muted-foreground: 215 16% 47%;
+
+    --accent: 240 20% 15%;
+    --accent-foreground: 214 32% 91%;
+
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 100%;
+
+    --success: 160 64% 40%;
+    --success-foreground: 0 0% 100%;
+
+    --warning: 38 92% 50%;
+    --warning-foreground: 0 0% 0%;
+
+    --border: 240 14% 15%;
+    --input: 240 14% 15%;
+    --ring: 263 70% 58%;
+
+    --radius: 0.5rem;
+
+    --sidebar-background: 240 22% 7%;
+    --sidebar-foreground: 214 32% 91%;
+    --sidebar-primary: 263 70% 58%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 240 20% 12%;
+    --sidebar-accent-foreground: 214 32% 91%;
+    --sidebar-border: 240 14% 15%;
+    --sidebar-ring: 263 70% 58%;
+
+    --surface: 240 20% 9%;
+    --surface-hover: 240 25% 12%;
+    --glow-primary: 0 0 20px hsl(263 70% 58% / 0.3);
+    --glow-secondary: 0 0 20px hsl(187 94% 43% / 0.3);
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground font-sans antialiased;
+  }
+
+  ::selection {
+    background: hsl(263 70% 58% / 0.3);
+  }
+}
+
+@layer utilities {
+  .glow-primary {
+    box-shadow: 0 0 20px hsl(263 70% 58% / 0.3);
+  }
+  .glow-secondary {
+    box-shadow: 0 0 20px hsl(187 94% 43% / 0.3);
+  }
+  .glow-primary-sm {
+    box-shadow: 0 0 10px hsl(263 70% 58% / 0.2);
+  }
+  .text-gradient-hero {
+    @apply bg-clip-text text-transparent;
+    background-image: linear-gradient(135deg, hsl(263 70% 58%), hsl(187 94% 43%));
+  }
+  .border-top-accent {
+    border-top: 2px solid;
+  }
+  .transition-default {
+    @apply transition-all duration-150 ease-in-out;
+  }
+  .font-mono-code {
+    font-family: 'JetBrains Mono', monospace;
+  }
+}
