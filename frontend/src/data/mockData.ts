@@ -1,0 +1,116 @@
+import { Bookmark, ContentType } from "./types";
+
+export const mockBookmarks: Bookmark[] = [
+  {
+    id: "1",
+    title: "Understanding React Server Components",
+    url: "https://vercel.com/blog/understanding-react-server-components",
+    domain: "vercel.com",
+    summary: "A deep dive into how React Server Components work under the hood, including streaming, suspense boundaries, and the new mental model for data fetching.",
+    contentType: "blog",
+    tags: [
+      { name: "React", color: "purple" },
+      { name: "TypeScript", color: "cyan" },
+      { name: "Next.js", color: "purple" },
+    ],
+    timestamp: "2h ago",
+    isFavorite: true,
+    isProcessing: false,
+  },
+  {
+    id: "2",
+    title: "shadcn/ui - Beautiful component library",
+    url: "https://github.com/shadcn-ui/ui",
+    domain: "github.com",
+    summary: "Beautifully designed components built with Radix UI and Tailwind CSS. Copy and paste into your apps. Open Source.",
+    contentType: "repo",
+    tags: [
+      { name: "React", color: "purple" },
+      { name: "Tailwind", color: "cyan" },
+      { name: "UI", color: "green" },
+    ],
+    timestamp: "5h ago",
+    isFavorite: false,
+    isProcessing: false,
+  },
+  {
+    id: "3",
+    title: "System Design Interview: Rate Limiter",
+    url: "https://youtube.com/watch?v=abc123",
+    domain: "youtube.com",
+    summary: "Comprehensive walkthrough of designing a distributed rate limiter, covering token bucket, sliding window, and fixed window algorithms.",
+    contentType: "video",
+    tags: [
+      { name: "System Design", color: "green" },
+      { name: "Architecture", color: "green" },
+    ],
+    timestamp: "Yesterday",
+    isFavorite: true,
+    isProcessing: false,
+  },
+  {
+    id: "4",
+    title: "Attention Is All You Need - Original Transformer Paper",
+    url: "https://arxiv.org/abs/1706.03762",
+    domain: "arxiv.org",
+    summary: "The foundational paper introducing the Transformer architecture that revolutionized NLP and became the basis for GPT, BERT, and modern LLMs.",
+    contentType: "paper",
+    tags: [
+      { name: "AI/ML", color: "amber" },
+      { name: "Research", color: "green" },
+    ],
+    timestamp: "2d ago",
+    isFavorite: false,
+    isProcessing: false,
+  },
+  {
+    id: "5",
+    title: "Docker Compose Best Practices for Dev Environments",
+    url: "https://medium.com/docker-compose-best-practices",
+    domain: "medium.com",
+    summary: "",
+    contentType: "blog",
+    tags: [
+      { name: "Docker", color: "amber" },
+      { name: "DevOps", color: "amber" },
+    ],
+    timestamp: "3d ago",
+    isFavorite: false,
+    isProcessing: true,
+  },
+  {
+    id: "6",
+    title: "Building a CLI Tool with Rust and Clap",
+    url: "https://blog.rust-lang.org/cli-tool-clap",
+    domain: "rust-lang.org",
+    summary: "Step-by-step guide to building a production-ready CLI tool using Rust's Clap library, including argument parsing, subcommands, and error handling.",
+    contentType: "blog",
+    tags: [
+      { name: "Rust", color: "cyan" },
+      { name: "CLI", color: "amber" },
+    ],
+    timestamp: "4d ago",
+    isFavorite: false,
+    isProcessing: false,
+  },
+];
+
+export const mockTags = [
+  { name: "React", count: 34, color: "purple" as const },
+  { name: "TypeScript", count: 28, color: "cyan" as const },
+  { name: "System Design", count: 15, color: "green" as const },
+  { name: "Docker", count: 12, color: "amber" as const },
+  { name: "Next.js", count: 11, color: "purple" as const },
+  { name: "Rust", count: 9, color: "cyan" as const },
+  { name: "AI/ML", count: 8, color: "amber" as const },
+  { name: "DevOps", count: 7, color: "amber" as const },
+  { name: "PostgreSQL", count: 6, color: "cyan" as const },
+  { name: "Architecture", count: 5, color: "green" as const },
+];
+
+export const mockCollections = [
+  { id: "1", name: "Frontend Mastery", count: 34, color: "purple", favicons: ["vercel.com", "react.dev", "tailwindcss.com"] },
+  { id: "2", name: "System Design", count: 15, color: "green", favicons: ["youtube.com", "medium.com", "arxiv.org"] },
+  { id: "3", name: "DevOps & Infra", count: 12, color: "amber", favicons: ["docker.com", "github.com", "aws.amazon.com"] },
+  { id: "4", name: "AI Research", count: 8, color: "cyan", favicons: ["arxiv.org", "openai.com", "huggingface.co"] },
+];
