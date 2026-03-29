@@ -72,8 +72,8 @@ tasks.named('test') {
 // ── SpotBugs ──────────────────────────────────────────────────────────────────
 spotbugs {
     toolVersion = '4.8.3'
-    effort = 'max'
-    reportLevel = 'high'
+    effort = com.github.spotbugs.snom.Effort.valueOf('MAX')
+    reportLevel = com.github.spotbugs.snom.Confidence.valueOf('HIGH')
     excludeFilter = file("config/spotbugs-exclude.xml")
     ignoreFailures = false
 }
