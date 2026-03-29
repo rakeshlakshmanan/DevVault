@@ -1,6 +1,8 @@
 import { useState } from "react";
 import { X, Link, Loader2 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { bookmarksApi } from "@/api/bookmarks";
 
 interface AddBookmarkModalProps {
   isOpen: boolean;
@@ -9,34 +11,42 @@ interface AddBookmarkModalProps {
 
 const AddBookmarkModal = ({ isOpen, onClose }: AddBookmarkModalProps) => {
   const [url, setUrl] = useState("");
-  const [note, setNote] = useState("");
   const [isPublic, setIsPublic] = useState(false);
-  const [isFetching, setIsFetching] = useState(false);
-  const [preview, setPreview] = useState<{ title: string; domain: string } | null>(null);
+  const [preview, setPreview] = useState<{ domain: string } | null>(null);
+  const [error, setError] = useState("");
+
+  const queryClient = useQueryClient();
+
+  const { mutate: saveBookmark, isPending } = useMutation({
+    mutationFn: () => bookmarksApi.create({ url, isPublic }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["bookmarks"] });
+      onClose();
+      setUrl("");
+      setPreview(null);
+      setError("");
+    },
+    onError: (err: Error) => setError(err.message),
+  });
 
   const handleUrlChange = (value: string) => {
     setUrl(value);
+    setError("");
     if (value.startsWith("http")) {
-      setIsFetching(true);
-      setTimeout(() => {
-        try {
-          const domain = new URL(value).hostname;
-          setPreview({ title: "Fetched page title", domain });
-        } catch {
-          setPreview(null);
-        }
-        setIsFetching(false);
-      }, 800);
+      try {
+        const domain = new URL(value).hostname;
+        setPreview({ domain });
+      } catch {
+        setPreview(null);
+      }
     } else {
       setPreview(null);
     }
   };
 
   const handleSave = () => {
-    onClose();
-    setUrl("");
-    setNote("");
-    setPreview(null);
+    if (!url) return;
+    saveBookmark();
   };
 
   return (
@@ -77,27 +87,13 @@ const AddBookmarkModal = ({ isOpen, onClose }: AddBookmarkModalProps) => {
                 />
               </div>
 
-              {isFetching && (
-                <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                  <Loader2 size={14} className="animate-spin" />
-                  Fetching metadata...
-                </div>
-              )}
-
-              {preview && !isFetching && (
+              {preview && (
                 <div className="p-3 rounded-lg bg-muted border border-border">
-                  <p className="text-sm font-medium text-foreground">{preview.title}</p>
-                  <p className="text-xs font-mono-code text-muted-foreground mt-1">{preview.domain}</p>
+                  <p className="text-xs font-mono-code text-muted-foreground">{preview.domain}</p>
                 </div>
               )}
 
-              <textarea
-                value={note}
-                onChange={(e) => setNote(e.target.value)}
-                placeholder="Add your note (optional)..."
-                rows={2}
-                className="w-full bg-muted border border-border rounded-lg px-4 py-2.5 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary/50 focus:ring-1 focus:ring-primary/30 transition-default resize-none"
-              />
+              {error && <p className="text-sm text-destructive">{error}</p>}
 
               <div className="flex items-center justify-between">
                 <label className="flex items-center gap-2 text-sm text-muted-foreground cursor-pointer">
@@ -113,9 +109,10 @@ const AddBookmarkModal = ({ isOpen, onClose }: AddBookmarkModalProps) => {
 
               <button
                 onClick={handleSave}
-                disabled={!url}
-                className="w-full py-2.5 rounded-lg bg-primary text-primary-foreground font-medium text-sm glow-primary hover:brightness-110 transition-default disabled:opacity-50 disabled:cursor-not-allowed"
+                disabled={!url || isPending}
+                className="w-full py-2.5 rounded-lg bg-primary text-primary-foreground font-medium text-sm glow-primary hover:brightness-110 transition-default disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
               >
+                {isPending && <Loader2 size={14} className="animate-spin" />}
                 Save Bookmark
               </button>
             </div>
