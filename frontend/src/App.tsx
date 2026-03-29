@@ -7,11 +7,19 @@ import AppSidebar from "@/components/AppSidebar";
 import TopBar from "@/components/TopBar";
 import AddBookmarkModal from "@/components/AddBookmarkModal";
 import Dashboard from "@/pages/Dashboard";
+import Bookmarks from "@/pages/Bookmarks";
 import Login from "@/pages/Login";
 import NotFound from "./pages/NotFound";
 import { AuthProvider, useAuth } from "@/context/AuthContext";
 
 const queryClient = new QueryClient();
+
+const ComingSoon = ({ title }: { title: string }) => (
+  <div className="p-6">
+    <h1 className="text-2xl font-bold text-foreground">{title}</h1>
+    <p className="text-sm text-muted-foreground mt-2">Coming soon.</p>
+  </div>
+);
 
 const AppLayout = () => {
   const [modalOpen, setModalOpen] = useState(false);
@@ -27,6 +35,11 @@ const AppLayout = () => {
         <main className="flex-1 overflow-auto">
           <Routes>
             <Route path="/" element={<Dashboard />} />
+            <Route path="/bookmarks" element={<Bookmarks />} />
+            <Route path="/collections" element={<ComingSoon title="Collections" />} />
+            <Route path="/tags" element={<ComingSoon title="Tags" />} />
+            <Route path="/favorites" element={<ComingSoon title="Favorites" />} />
+            <Route path="/explore" element={<ComingSoon title="Explore" />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </main>
