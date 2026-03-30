@@ -24,6 +24,12 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
     },
   });
 
+  if (res.status === 401) {
+    clearTokens();
+    window.location.href = '/login';
+    throw new Error('Session expired');
+  }
+
   if (!res.ok) {
     const err = await res.json().catch(() => ({ message: res.statusText }));
     throw new Error(err.message || 'Request failed');
