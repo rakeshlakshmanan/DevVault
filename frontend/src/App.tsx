@@ -12,7 +12,14 @@ import Login from "@/pages/Login";
 import NotFound from "./pages/NotFound";
 import { AuthProvider, useAuth } from "@/context/AuthContext";
 
-const queryClient = new QueryClient();
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      retry: 1,
+      staleTime: 30_000,
+    },
+  },
+});
 
 const ComingSoon = ({ title }: { title: string }) => (
   <div className="p-6">
