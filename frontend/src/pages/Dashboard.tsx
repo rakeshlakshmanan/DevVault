@@ -38,12 +38,12 @@ const Dashboard = () => {
     return "Good evening";
   })();
 
-  const { data: bookmarksPage, isLoading: loadingBookmarks } = useQuery({
+  const { data: bookmarksPage, isLoading: loadingBookmarks, isError: bookmarksError } = useQuery({
     queryKey: ["bookmarks"],
     queryFn: () => bookmarksApi.list(0, 20),
   });
 
-  const { data: collectionsPage, isLoading: loadingCollections } = useQuery({
+  const { data: collectionsPage, isLoading: loadingCollections, isError: collectionsError } = useQuery({
     queryKey: ["collections"],
     queryFn: () => collectionsApi.list(0, 20),
   });
@@ -131,6 +131,8 @@ const Dashboard = () => {
           </div>
           {loadingBookmarks ? (
             <p className="text-sm text-muted-foreground">Loading...</p>
+          ) : bookmarksError ? (
+            <p className="text-sm text-destructive">Failed to load bookmarks. Is the backend running?</p>
           ) : bookmarks.length === 0 ? (
             <p className="text-sm text-muted-foreground">No bookmarks yet. Save your first one!</p>
           ) : (
@@ -160,6 +162,8 @@ const Dashboard = () => {
             <h3 className="text-base font-semibold text-foreground mb-3">Collections</h3>
             {loadingCollections ? (
               <p className="text-sm text-muted-foreground">Loading...</p>
+            ) : collectionsError ? (
+              <p className="text-sm text-destructive">Failed to load collections.</p>
             ) : collections.length === 0 ? (
               <p className="text-sm text-muted-foreground">No collections yet.</p>
             ) : (
