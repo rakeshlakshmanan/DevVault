@@ -1,10 +1,11 @@
 import { useState } from "react";
-import { useLocation, Link } from "react-router-dom";
+import { useLocation, Link, useNavigate } from "react-router-dom";
 import {
   LayoutDashboard, Bookmark, FolderOpen, Hash, Star, Compass,
-  Brain, ChevronLeft, ChevronRight, ChevronDown
+  Brain, ChevronLeft, ChevronRight, ChevronDown, LogOut
 } from "lucide-react";
 import { motion } from "framer-motion";
+import { useAuth } from "@/context/AuthContext";
 
 const navItems = [
   { label: "Dashboard", icon: LayoutDashboard, path: "/" },
@@ -18,6 +19,13 @@ const navItems = [
 const AppSidebar = () => {
   const [collapsed, setCollapsed] = useState(false);
   const location = useLocation();
+  const navigate = useNavigate();
+  const { user, logout } = useAuth();
+
+  const handleLogout = () => {
+    logout();
+    navigate("/login");
+  };
 
   return (
     <motion.aside
@@ -65,7 +73,7 @@ const AppSidebar = () => {
       </nav>
 
       {/* User section */}
-      <div className="border-t border-sidebar-border p-3">
+      <div className="border-t border-sidebar-border p-3 space-y-1">
         <div className="flex items-center gap-3">
           <div className="relative shrink-0">
             <div className="w-8 h-8 rounded-full bg-muted border border-border" />
@@ -73,14 +81,20 @@ const AppSidebar = () => {
           </div>
           {!collapsed && (
             <div className="flex-1 min-w-0">
-              <div className="flex items-center justify-between">
-                <span className="text-sm font-medium text-foreground truncate">developer</span>
-                <ChevronDown size={14} className="text-muted-foreground" />
-              </div>
-              <p className="text-[11px] text-muted-foreground">Saved today: 3</p>
+              <span className="text-sm font-medium text-foreground truncate block">
+                {user?.username ?? "developer"}
+              </span>
+              <p className="text-[11px] text-muted-foreground truncate">{user?.email}</p>
             </div>
           )}
         </div>
+        <button
+          onClick={handleLogout}
+          className={`flex items-center gap-3 w-full px-3 py-2 rounded-lg text-sm text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors ${collapsed ? "justify-center" : ""}`}
+        >
+          <LogOut size={16} />
+          {!collapsed && <span>Logout</span>}
+        </button>
       </div>
 
       {/* Collapse toggle */}
