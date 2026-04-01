@@ -74,9 +74,13 @@ const AppSidebar = () => {
 
       {/* User section */}
       <div className="border-t border-sidebar-border p-3 space-y-1">
-        <div className="flex items-center gap-3">
+        <Link to="/profile" className="flex items-center gap-3 rounded-lg hover:bg-sidebar-accent/50 transition-colors p-1 -m-1">
           <div className="relative shrink-0">
-            <div className="w-8 h-8 rounded-full bg-muted border border-border" />
+            <div className="w-8 h-8 rounded-full bg-primary/20 border border-primary/30 flex items-center justify-center">
+              <span className="text-xs font-bold text-primary">
+                {user?.username ? user.username.slice(0, 2).toUpperCase() : "??"}
+              </span>
+            </div>
             <span className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full bg-success border-2 border-sidebar" />
           </div>
           {!collapsed && (
@@ -87,7 +91,7 @@ const AppSidebar = () => {
               <p className="text-[11px] text-muted-foreground truncate">{user?.email}</p>
             </div>
           )}
-        </div>
+        </Link>
         <button
           onClick={handleLogout}
           className={`flex items-center gap-3 w-full px-3 py-2 rounded-lg text-sm text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors ${collapsed ? "justify-center" : ""}`}
