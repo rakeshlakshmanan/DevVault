@@ -64,6 +64,44 @@ public class AuthService {
         return buildAuthResponse(user);
     }
 
+    @Transactional
+    public AuthResponse findOrCreateGoogleUser(String googleId, String email, String name, String avatarUrl) {
+        var byGoogleId = userRepository.findByGoogleId(googleId);
+        if (byGoogleId.isPresent()) {
+            return buildAuthResponse(byGoogleId.get());
+        }
+
+        var byEmail = userRepository.findByEmail(email);
+        if (byEmail.isPresent()) {
+            User user = byEmail.get();
+            user.setGoogleId(googleId);
+            if (avatarUrl != null) user.setAvatarUrl(avatarUrl);
+            return buildAuthResponse(userRepository.save(user));
+        }
+
+        String username = generateUniqueUsername(name, email);
+        User user = User.builder()
+                .email(email)
+                .username(username)
+                .googleId(googleId)
+                .avatarUrl(avatarUrl)
+                .build();
+        return buildAuthResponse(userRepository.save(user));
+    }
+
+    private String generateUniqueUsername(String name, String email) {
+        String base = (name != null ? name : email.split("@")[0])
+                .replaceAll("[^a-zA-Z0-9_-]", "").toLowerCase();
+        if (base.length() < 3) base = "user" + base;
+        base = base.substring(0, Math.min(base.length(), 40));
+        String candidate = base;
+        int i = 1;
+        while (userRepository.existsByUsername(candidate)) {
+            candidate = base + i++;
+        }
+        return candidate;
+    }
+
     private AuthResponse buildAuthResponse(User user) {
         String accessToken = jwtProvider.generateAccessToken(user.getId(), user.getEmail());
         String refreshToken = jwtProvider.generateRefreshToken(user.getId(), user.getEmail());
