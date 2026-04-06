@@ -1,5 +1,7 @@
 import { useState } from "react";
 import { Search, Bell, Plus } from "lucide-react";
+import { useNavigate } from "react-router-dom";
+import { useAuth } from "@/context/AuthContext";
 
 interface TopBarProps {
   title: string;
@@ -8,6 +10,9 @@ interface TopBarProps {
 
 const TopBar = ({ title, onAddBookmark }: TopBarProps) => {
   const [searchFocused, setSearchFocused] = useState(false);
+  const { user } = useAuth();
+  const navigate = useNavigate();
+  const initials = user?.username ? user.username.slice(0, 2).toUpperCase() : "?";
 
   return (
     <div className="sticky top-0 z-30 flex items-center gap-4 px-6 py-3 bg-background/80 backdrop-blur-md border-b border-border">
@@ -41,7 +46,13 @@ const TopBar = ({ title, onAddBookmark }: TopBarProps) => {
           <Plus size={16} />
           Add
         </button>
-        <div className="w-8 h-8 rounded-full bg-muted border border-border" />
+        <button
+          onClick={() => navigate("/profile")}
+          className="w-8 h-8 rounded-full bg-primary/20 border border-primary/30 flex items-center justify-center hover:bg-primary/30 transition-colors"
+          title={user?.username}
+        >
+          <span className="text-xs font-bold text-primary">{initials}</span>
+        </button>
       </div>
     </div>
   );
