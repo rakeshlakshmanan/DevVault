@@ -61,8 +61,11 @@ export default function Login() {
         res.refreshToken
       );
       navigate('/');
-    } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : 'Something went wrong');
+    } catch {
+      setError('Incorrect email or password');
+      setEmail('');
+      setPassword('');
+      setUsername('');
     } finally {
       setLoading(false);
     }
@@ -247,18 +250,11 @@ export default function Login() {
                 />
               </div>
 
-              <AnimatePresence>
-                {error && (
-                  <motion.p
-                    initial={{ opacity: 0, y: -4 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0 }}
-                    className="text-xs text-red-400 bg-red-500/10 border border-red-500/20 rounded-lg px-3 py-2"
-                  >
-                    {error}
-                  </motion.p>
-                )}
-              </AnimatePresence>
+              {error && (
+                <p className="text-xs text-red-400 bg-red-500/10 border border-red-500/20 rounded-lg px-3 py-2">
+                  {error}
+                </p>
+              )}
 
               <motion.button
                 type="submit"
