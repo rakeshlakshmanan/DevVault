@@ -10,6 +10,7 @@ import Dashboard from "@/pages/Dashboard";
 import Bookmarks from "@/pages/Bookmarks";
 import Profile from "@/pages/Profile";
 import Login from "@/pages/Login";
+import OAuth2Callback from "@/pages/OAuth2Callback";
 import NotFound from "./pages/NotFound";
 import { AuthProvider, useAuth } from "@/context/AuthContext";
 
@@ -66,6 +67,7 @@ const App = () => (
         <AuthProvider>
           <Routes>
             <Route path="/login" element={<Login />} />
+            <Route path="/oauth2/callback" element={<OAuth2Callback />} />
             <Route path="/*" element={<AppLayout />} />
           </Routes>
         </AuthProvider>
