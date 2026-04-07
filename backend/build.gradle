@@ -60,6 +60,9 @@ dependencies {
     // SpotBugs annotations (optional but useful)
     compileOnly 'com.github.spotbugs:spotbugs-annotations:4.8.3'
 
+    // Dotenv support
+    implementation 'me.paulschwarz:spring-dotenv:4.0.0'
+
     // Test
     testImplementation 'org.springframework.boot:spring-boot-starter-test'
     testImplementation 'org.springframework.security:spring-security-test'
