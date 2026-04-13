@@ -18,6 +18,13 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
+/**
+ * Service that integrates with the Google Gemini API to generate AI-powered
+ * summaries and tags for bookmarks.
+ *
+ * <p>Processing is performed asynchronously on a dedicated thread pool so that
+ * bookmark creation is not blocked while waiting for the AI response.</p>
+ */
 @Service
 @Slf4j
 public class AiService {
@@ -40,6 +47,16 @@ public class AiService {
         this.geminiModel = geminiModel;
     }
 
+    /**
+     * Asynchronously processes a bookmark by calling Gemini to generate a summary and tags.
+     *
+     * <p>The bookmark's {@code aiStatus} is set to {@code PROCESSING} while the API call is in
+     * flight, then updated to {@code COMPLETED} or {@code FAILED} depending on the outcome.
+     * AI-generated tags are applied via {@link TagService#applyAiTags} on success.</p>
+     *
+     * @param bookmarkId     the ID of the bookmark to process
+     * @param scrapedContent the body text previously scraped from the bookmark URL
+     */
     @Async("aiTaskExecutor")
     @Transactional
     public void processBookmark(UUID bookmarkId, String scrapedContent) {
@@ -65,6 +82,14 @@ public class AiService {
         }
     }
 
+    /**
+     * Calls the Gemini {@code generateContent} endpoint with a structured prompt
+     * and returns the parsed {@link AiResult}.
+     *
+     * @param title   the bookmark title, used to give the model context
+     * @param content the scraped body text of the bookmarked page
+     * @return an {@link AiResult} containing the summary and tag list
+     */
     private AiResult callGemini(String title, String content) {
         String prompt = buildPrompt(title, content);
 
@@ -87,6 +112,14 @@ public class AiService {
         return parseGeminiResponse(response);
     }
 
+    /**
+     * Builds the text prompt sent to Gemini, requesting a 2–3 sentence summary
+     * and 3–5 comma-separated tags in a fixed {@code SUMMARY: / TAGS:} format.
+     *
+     * @param title   the bookmark title (may be {@code null})
+     * @param content the scraped page content (may be {@code null})
+     * @return the formatted prompt string
+     */
     private String buildPrompt(String title, String content) {
         return """
                 Analyze the following web content and provide:
@@ -102,6 +135,16 @@ public class AiService {
                 """.formatted(title != null ? title : "Unknown", content != null ? content : "");
     }
 
+    /**
+     * Parses the raw JSON string returned by Gemini to extract the summary and tags.
+     *
+     * <p>Looks for the first {@code "text"} field in the response JSON and splits it
+     * on the {@code SUMMARY:} and {@code TAGS:} markers. Returns an empty
+     * {@link AiResult} if parsing fails.</p>
+     *
+     * @param rawResponse the raw JSON response body from the Gemini API
+     * @return the parsed {@link AiResult}, or an empty result if parsing fails
+     */
     private AiResult parseGeminiResponse(String rawResponse) {
         // Basic parsing — extract text from Gemini JSON response
         // In production, use a proper JSON parser
@@ -132,5 +175,11 @@ public class AiService {
         }
     }
 
+    /**
+     * Holds the AI-generated output for a single bookmark.
+     *
+     * @param summary a 2–3 sentence plain-text summary of the bookmarked content
+     * @param tags    a list of 3–5 short tag strings suggested by the model
+     */
     public record AiResult(String summary, List<String> tags) {}
 }
