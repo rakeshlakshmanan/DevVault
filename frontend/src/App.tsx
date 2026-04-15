@@ -9,6 +9,7 @@ import AddBookmarkModal from "@/components/AddBookmarkModal";
 import Dashboard from "@/pages/Dashboard";
 import Bookmarks from "@/pages/Bookmarks";
 import Collections from "@/pages/Collections";
+import Tags from "@/pages/Tags";
 import Profile from "@/pages/Profile";
 import Login from "@/pages/Login";
 import OAuth2Callback from "@/pages/OAuth2Callback";
@@ -47,7 +48,7 @@ const AppLayout = () => {
             <Route path="/" element={<Dashboard />} />
             <Route path="/bookmarks" element={<Bookmarks />} />
             <Route path="/collections" element={<Collections />} />
-            <Route path="/tags" element={<ComingSoon title="Tags" />} />
+            <Route path="/tags" element={<Tags />} />
             <Route path="/favorites" element={<ComingSoon title="Favorites" />} />
             <Route path="/explore" element={<ComingSoon title="Explore" />} />
             <Route path="/profile" element={<Profile />} />
