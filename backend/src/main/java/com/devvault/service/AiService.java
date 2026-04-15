@@ -60,23 +60,31 @@ public class AiService {
     @Async("aiTaskExecutor")
     @Transactional
     public void processBookmark(UUID bookmarkId, String scrapedContent) {
+        log.info("[AI] Starting processing for bookmark {}", bookmarkId);
+
         Bookmark bookmark = bookmarkRepository.findById(bookmarkId).orElse(null);
-        if (bookmark == null) return;
+        if (bookmark == null) {
+            log.warn("[AI] Bookmark {} not found, skipping", bookmarkId);
+            return;
+        }
 
         try {
             bookmark.setAiStatus(AiStatus.PROCESSING);
             bookmarkRepository.save(bookmark);
+            log.info("[AI] Calling Gemini for bookmark {} (title='{}')", bookmarkId, bookmark.getTitle());
 
             AiResult result = callGemini(bookmark.getTitle(), scrapedContent);
+            log.info("[AI] Gemini returned summary='{}' tags={}", result.summary(), result.tags());
 
             bookmark.setAiSummary(result.summary());
             bookmark.setAiStatus(AiStatus.COMPLETED);
             bookmarkRepository.save(bookmark);
 
             tagService.applyAiTags(bookmark, result.tags());
+            log.info("[AI] Successfully processed bookmark {}", bookmarkId);
 
         } catch (Exception e) {
-            log.error("AI processing failed for bookmark {}", bookmarkId, e);
+            log.error("[AI] Processing failed for bookmark {}", bookmarkId, e);
             bookmark.setAiStatus(AiStatus.FAILED);
             bookmarkRepository.save(bookmark);
         }
@@ -92,6 +100,7 @@ public class AiService {
      */
     private AiResult callGemini(String title, String content) {
         String prompt = buildPrompt(title, content);
+        log.debug("[AI] Using model={} apiKeyPresent={}", geminiModel, geminiConfig.getApiKey() != null && !geminiConfig.getApiKey().isBlank());
 
         Map<String, Object> requestBody = Map.of(
                 "contents", List.of(Map.of(
@@ -106,9 +115,15 @@ public class AiService {
                         .build(geminiModel))
                 .bodyValue(requestBody)
                 .retrieve()
+                .onStatus(status -> !status.is2xxSuccessful(), clientResponse ->
+                        clientResponse.bodyToMono(String.class).map(body -> {
+                            log.error("[AI] Gemini API returned HTTP {} — body: {}", clientResponse.statusCode(), body);
+                            return new RuntimeException("Gemini API error " + clientResponse.statusCode() + ": " + body);
+                        }))
                 .bodyToMono(String.class)
                 .block();
 
+        log.debug("[AI] Raw Gemini response: {}", response);
         return parseGeminiResponse(response);
     }
 
@@ -154,6 +169,8 @@ public class AiService {
             String text = rawResponse.substring(textStart, textEnd)
                     .replace("\\n", "\n");
 
+            log.debug("[AI] Extracted text block: {}", text);
+
             String summary = "";
             List<String> tags = List.of();
 
@@ -168,9 +185,14 @@ public class AiService {
                             .toList();
                 }
             }
+
+            if (summary.isBlank() && tags.isEmpty()) {
+                log.warn("[AI] Parsed response has no summary or tags — raw text block was: {}", text);
+            }
+
             return new AiResult(summary, tags);
         } catch (Exception e) {
-            log.warn("Failed to parse Gemini response", e);
+            log.warn("[AI] Failed to parse Gemini response — rawResponse: {}", rawResponse, e);
             return new AiResult("", List.of());
         }
     }
