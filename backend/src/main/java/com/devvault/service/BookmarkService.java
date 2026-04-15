@@ -7,6 +7,7 @@ import com.devvault.dto.response.PageResponse;
 import com.devvault.entity.Bookmark;
 import com.devvault.entity.User;
 import com.devvault.enums.ContentType;
+import com.devvault.event.BookmarkCreatedEvent;
 import com.devvault.exception.DuplicateBookmarkException;
 import com.devvault.exception.ResourceNotFoundException;
 import com.devvault.mapper.BookmarkMapper;
@@ -14,6 +15,7 @@ import com.devvault.repository.BookmarkRepository;
 import com.devvault.repository.BookmarkTagRepository;
 import com.devvault.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
@@ -37,8 +39,8 @@ public class BookmarkService {
     private final UserRepository userRepository;
     private final TagService tagService;
     private final ScraperService scraperService;
-    private final AiService aiService;
     private final BookmarkMapper bookmarkMapper;
+    private final ApplicationEventPublisher eventPublisher;
 
     /**
      * Creates a new bookmark for the given user.
@@ -82,9 +84,8 @@ public class BookmarkService {
             tagService.applyUserTags(bookmark, request.getTags());
         }
 
-        // Trigger async AI processing
-        String bookmarkId = bookmark.getId().toString();
-        aiService.processBookmark(bookmark.getId(), scraped.bodyText());
+        // Publish event — AI processing fires after this transaction commits
+        eventPublisher.publishEvent(new BookmarkCreatedEvent(bookmark.getId(), scraped.bodyText()));
 
         var tags = bookmarkTagRepository.findByBookmarkId(bookmark.getId());
         return bookmarkMapper.toResponse(bookmark, tags);
