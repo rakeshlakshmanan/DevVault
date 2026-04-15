@@ -1,14 +1,24 @@
-import { Star, MoreHorizontal } from "lucide-react";
+import { Star, MoreHorizontal, X, Loader2 } from "lucide-react";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { Bookmark } from "@/data/types";
 import { contentTypeConfig, tagColorMap } from "@/lib/constants";
+import { tagsApi } from "@/api/tags";
 
 interface BookmarkCardProps {
-  bookmark: Bookmark;
+  bookmark: Bookmark & { rawId?: string };
 }
 
 const BookmarkCard = ({ bookmark }: BookmarkCardProps) => {
   const typeConfig = contentTypeConfig[bookmark.contentType];
   const TypeIcon = typeConfig.icon;
+  const bookmarkId = bookmark.rawId ?? bookmark.id;
+
+  const queryClient = useQueryClient();
+
+  const { mutate: removeTag, variables: removingTagId } = useMutation({
+    mutationFn: (tagId: string) => tagsApi.remove(bookmarkId, tagId),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["bookmarks"] }),
+  });
 
   return (
     <div className="group flex items-start gap-3 p-4 rounded-lg bg-card border border-border hover:border-primary/30 hover:bg-surface-hover transition-default cursor-pointer">
@@ -42,9 +52,22 @@ const BookmarkCard = ({ bookmark }: BookmarkCardProps) => {
           {bookmark.tags.map((tag) => (
             <span
               key={tag.name}
-              className={`text-[11px] px-2 py-0.5 rounded-full border ${tagColorMap[tag.color]}`}
+              className={`inline-flex items-center gap-1 text-[11px] px-2 py-0.5 rounded-full border ${tagColorMap[tag.color]}`}
             >
               {tag.name}
+              {(tag as any).id && (
+                <button
+                  onClick={(e) => { e.stopPropagation(); removeTag((tag as any).id); }}
+                  className="ml-0.5 rounded-full opacity-0 group-hover:opacity-60 hover:!opacity-100 transition-opacity"
+                  title="Remove tag"
+                >
+                  {removingTagId === (tag as any).id ? (
+                    <Loader2 size={9} className="animate-spin" />
+                  ) : (
+                    <X size={9} />
+                  )}
+                </button>
+              )}
             </span>
           ))}
         </div>
