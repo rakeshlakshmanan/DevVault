@@ -183,18 +183,33 @@ public class AiService {
      * @return the formatted prompt string
      */
     private String buildPrompt(String title, String content) {
-        return """
-                Analyze the following web content and provide:
-                1. A concise summary (2-3 sentences)
-                2. 3-5 relevant tags (single words or short phrases)
+        boolean hasContent = content != null && !content.isBlank();
+        if (hasContent) {
+            return """
+                    Analyze the following web content and provide:
+                    1. A concise summary (2-3 sentences)
+                    2. 3-5 relevant tags (single words or short phrases)
 
-                Respond in exactly this format:
-                SUMMARY: <your summary here>
-                TAGS: <tag1>, <tag2>, <tag3>
+                    Respond in exactly this format:
+                    SUMMARY: <your summary here>
+                    TAGS: <tag1>, <tag2>, <tag3>
 
-                Title: %s
-                Content: %s
-                """.formatted(title != null ? title : "Unknown", content != null ? content : "");
+                    Title: %s
+                    Content: %s
+                    """.formatted(title != null ? title : "Unknown", content);
+        } else {
+            return """
+                    Based only on the page title below, infer what this bookmark is likely about and provide:
+                    1. A concise summary (2-3 sentences)
+                    2. 3-5 relevant tags (single words or short phrases)
+
+                    Respond in exactly this format:
+                    SUMMARY: <your summary here>
+                    TAGS: <tag1>, <tag2>, <tag3>
+
+                    Title: %s
+                    """.formatted(title != null ? title : "Unknown");
+        }
     }
 
     /**
