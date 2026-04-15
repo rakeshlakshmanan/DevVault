@@ -61,7 +61,7 @@ export default function Bookmarks() {
     domain: (() => { try { return new URL(b.url).hostname; } catch { return b.url; } })(),
     summary: b.aiSummary || b.description || "",
     contentType: (b.contentType?.toLowerCase() as BookmarkType["contentType"]) || "blog",
-    tags: (b.tags ?? []).map((t) => ({ name: t.name, color: colorForTag(t.name) })),
+    tags: (b.tags ?? []).map((t) => ({ id: t.id, name: t.name, color: colorForTag(t.name) })),
     timestamp: b.createdAt ? timeAgo(b.createdAt) : "",
     isFavorite: false,
     isProcessing: b.aiStatus === "PENDING" || b.aiStatus === "PROCESSING",
