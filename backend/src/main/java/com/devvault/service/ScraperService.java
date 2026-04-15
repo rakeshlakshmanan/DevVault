@@ -43,7 +43,10 @@ public class ScraperService {
         try {
             Document doc = Jsoup.connect(url)
                     .timeout(TIMEOUT_MS)
-                    .userAgent("Mozilla/5.0 (compatible; DevVault/1.0)")
+                    .userAgent("Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36")
+                    .header("Accept-Language", "en-US,en;q=0.9")
+                    .referrer("https://www.google.com")
+                    .followRedirects(true)
                     .get();
 
             String title = extractTitle(doc);
