@@ -8,6 +8,7 @@ import TopBar from "@/components/TopBar";
 import AddBookmarkModal from "@/components/AddBookmarkModal";
 import Dashboard from "@/pages/Dashboard";
 import Bookmarks from "@/pages/Bookmarks";
+import Collections from "@/pages/Collections";
 import Profile from "@/pages/Profile";
 import Login from "@/pages/Login";
 import OAuth2Callback from "@/pages/OAuth2Callback";
@@ -45,7 +46,7 @@ const AppLayout = () => {
           <Routes>
             <Route path="/" element={<Dashboard />} />
             <Route path="/bookmarks" element={<Bookmarks />} />
-            <Route path="/collections" element={<ComingSoon title="Collections" />} />
+            <Route path="/collections" element={<Collections />} />
             <Route path="/tags" element={<ComingSoon title="Tags" />} />
             <Route path="/favorites" element={<ComingSoon title="Favorites" />} />
             <Route path="/explore" element={<ComingSoon title="Explore" />} />
