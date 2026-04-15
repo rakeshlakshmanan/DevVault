@@ -4,6 +4,7 @@ import com.devvault.config.GeminiConfig;
 import com.devvault.entity.Bookmark;
 import com.devvault.enums.AiStatus;
 import com.devvault.enums.TagSource;
+import com.devvault.event.BookmarkCreatedEvent;
 import com.devvault.repository.BookmarkRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -14,6 +15,8 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.event.TransactionPhase;
+import org.springframework.transaction.event.TransactionalEventListener;
 import org.springframework.web.reactive.function.client.WebClient;
 
 import java.util.List;
@@ -63,7 +66,19 @@ public class AiService {
      * @param bookmarkId     the ID of the bookmark to process
      * @param scrapedContent the body text previously scraped from the bookmark URL
      */
+    /**
+     * Listens for {@link BookmarkCreatedEvent} after the creating transaction commits,
+     * then kicks off async AI processing. Using {@code AFTER_COMMIT} guarantees the
+     * bookmark row is visible before the async thread calls {@code findById}.
+     *
+     * @param event the event carrying the bookmark ID and scraped content
+     */
     @Async("aiTaskExecutor")
+    @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
+    public void onBookmarkCreated(BookmarkCreatedEvent event) {
+        processBookmark(event.bookmarkId(), event.scrapedContent());
+    }
+
     @Transactional
     public void processBookmark(UUID bookmarkId, String scrapedContent) {
         log.info("[AI] Starting processing for bookmark {}", bookmarkId);
