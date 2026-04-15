@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { X, Link, Loader2 } from "lucide-react";
+import { useState, KeyboardEvent } from "react";
+import { X, Link, Loader2, Hash } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { bookmarksApi } from "@/api/bookmarks";
@@ -14,17 +14,21 @@ const AddBookmarkModal = ({ isOpen, onClose }: AddBookmarkModalProps) => {
   const [isPublic, setIsPublic] = useState(false);
   const [preview, setPreview] = useState<{ domain: string } | null>(null);
   const [error, setError] = useState("");
+  const [tags, setTags] = useState<string[]>([]);
+  const [tagInput, setTagInput] = useState("");
 
   const queryClient = useQueryClient();
 
   const { mutate: saveBookmark, isPending } = useMutation({
-    mutationFn: () => bookmarksApi.create({ url, isPublic }),
+    mutationFn: () => bookmarksApi.create({ url, isPublic, tags: tags.length ? tags : undefined }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["bookmarks"] });
       onClose();
       setUrl("");
       setPreview(null);
       setError("");
+      setTags([]);
+      setTagInput("");
     },
     onError: (err: Error) => setError(err.message),
   });
@@ -44,7 +48,27 @@ const AddBookmarkModal = ({ isOpen, onClose }: AddBookmarkModalProps) => {
     }
   };
 
+  const addTag = (raw: string) => {
+    const name = raw.trim().toLowerCase().replace(/\s+/g, "-");
+    if (name && !tags.includes(name)) {
+      setTags((prev) => [...prev, name]);
+    }
+    setTagInput("");
+  };
+
+  const handleTagKeyDown = (e: KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === "Enter" || e.key === "," || e.key === " ") {
+      e.preventDefault();
+      addTag(tagInput);
+    } else if (e.key === "Backspace" && !tagInput && tags.length) {
+      setTags((prev) => prev.slice(0, -1));
+    }
+  };
+
+  const removeTag = (name: string) => setTags((prev) => prev.filter((t) => t !== name));
+
   const handleSave = () => {
+    if (tagInput.trim()) addTag(tagInput);
     if (!url) return;
     saveBookmark();
   };
@@ -92,6 +116,39 @@ const AddBookmarkModal = ({ isOpen, onClose }: AddBookmarkModalProps) => {
                   <p className="text-xs font-mono-code text-muted-foreground">{preview.domain}</p>
                 </div>
               )}
+
+              {/* Tag input */}
+              <div>
+                <label className="block text-xs font-medium text-muted-foreground mb-1.5">
+                  Tags <span className="font-normal">(optional — press Enter, comma, or space to add)</span>
+                </label>
+                <div className="flex flex-wrap gap-1.5 p-2.5 bg-muted border border-border rounded-lg focus-within:border-primary/50 focus-within:ring-1 focus-within:ring-primary/30 transition-default min-h-[42px]">
+                  {tags.map((t) => (
+                    <span
+                      key={t}
+                      className="inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full bg-primary/10 text-primary border border-primary/20"
+                    >
+                      <Hash size={9} />
+                      {t}
+                      <button
+                        onClick={() => removeTag(t)}
+                        className="ml-0.5 hover:opacity-70 transition-opacity"
+                      >
+                        <X size={9} />
+                      </button>
+                    </span>
+                  ))}
+                  <input
+                    type="text"
+                    value={tagInput}
+                    onChange={(e) => setTagInput(e.target.value)}
+                    onKeyDown={handleTagKeyDown}
+                    onBlur={() => tagInput.trim() && addTag(tagInput)}
+                    placeholder={tags.length === 0 ? "e.g. javascript, system-design" : ""}
+                    className="flex-1 min-w-[120px] bg-transparent outline-none text-sm text-foreground placeholder:text-muted-foreground"
+                  />
+                </div>
+              </div>
 
               {error && <p className="text-sm text-destructive">{error}</p>}
 
