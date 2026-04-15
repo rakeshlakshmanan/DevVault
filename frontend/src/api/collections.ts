@@ -1,5 +1,5 @@
 import { api } from '@/lib/api';
-import type { PageResponse } from './bookmarks';
+import type { BookmarkResponse, PageResponse } from './bookmarks';
 
 export interface CollectionResponse {
   id: string;
@@ -21,4 +21,15 @@ export const collectionsApi = {
     api.post<CollectionResponse>('/collections', { name, description, isPublic }),
 
   delete: (id: string) => api.delete<void>(`/collections/${id}`),
+
+  getBookmarks: (collectionId: string, page = 0, size = 20) => {
+    const params = new URLSearchParams({ page: String(page), size: String(size) });
+    return api.get<PageResponse<BookmarkResponse>>(`/collections/${collectionId}/bookmarks?${params}`);
+  },
+
+  addBookmark: (collectionId: string, bookmarkId: string) =>
+    api.post<void>(`/collections/${collectionId}/bookmarks/${bookmarkId}`, {}),
+
+  removeBookmark: (collectionId: string, bookmarkId: string) =>
+    api.delete<void>(`/collections/${collectionId}/bookmarks/${bookmarkId}`),
 };
