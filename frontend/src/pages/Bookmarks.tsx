@@ -37,6 +37,13 @@ export default function Bookmarks() {
     queryKey: ["bookmarks", "all", typeFilter, page],
     queryFn: () =>
       bookmarksApi.list(page, 20, typeFilter !== "all" ? typeFilter.toUpperCase() : undefined),
+    refetchInterval: (query) => {
+      const content = query.state.data?.content ?? [];
+      const anyProcessing = content.some(
+        (b) => b.aiStatus === "PENDING" || b.aiStatus === "PROCESSING"
+      );
+      return anyProcessing ? 3000 : false;
+    },
   });
 
   const { data: searchData, isLoading: isSearching } = useQuery({
