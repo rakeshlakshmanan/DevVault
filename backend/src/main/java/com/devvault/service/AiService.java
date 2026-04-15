@@ -9,6 +9,8 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -17,6 +19,7 @@ import org.springframework.web.reactive.function.client.WebClient;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import java.util.stream.Stream;
 
 /**
  * Service that integrates with the Google Gemini API to generate AI-powered
@@ -33,17 +36,20 @@ public class AiService {
     private final GeminiConfig geminiConfig;
     private final BookmarkRepository bookmarkRepository;
     private final TagService tagService;
+    private final ScraperService scraperService;
     private final String geminiModel;
 
     public AiService(@Qualifier("geminiWebClient") WebClient geminiWebClient,
                      GeminiConfig geminiConfig,
                      BookmarkRepository bookmarkRepository,
                      TagService tagService,
+                     ScraperService scraperService,
                      @Value("${app.gemini.model}") String geminiModel) {
         this.geminiWebClient = geminiWebClient;
         this.geminiConfig = geminiConfig;
         this.bookmarkRepository = bookmarkRepository;
         this.tagService = tagService;
+        this.scraperService = scraperService;
         this.geminiModel = geminiModel;
     }
 
@@ -87,6 +93,47 @@ public class AiService {
             log.error("[AI] Processing failed for bookmark {}", bookmarkId, e);
             bookmark.setAiStatus(AiStatus.FAILED);
             bookmarkRepository.save(bookmark);
+        }
+    }
+
+    /**
+     * Finds all bookmarks that are not yet {@code COMPLETED} (i.e. {@code PENDING},
+     * {@code PROCESSING}, or {@code FAILED}) and re-scrapes + reprocesses each one.
+     *
+     * <p>Intended to be called on application startup to recover bookmarks that missed
+     * AI processing (e.g. server was down, API key was missing, or the call failed).</p>
+     */
+    public void reprocessUnfinished() {
+        List<AiStatus> incomplete = List.of(AiStatus.PENDING, AiStatus.PROCESSING, AiStatus.FAILED);
+        java.util.Set<UUID> queued = new java.util.HashSet<>();
+        int processed = 0;
+
+        for (AiStatus status : incomplete) {
+            int page = 0;
+            Page<Bookmark> batch;
+            do {
+                batch = bookmarkRepository.findByAiStatus(status, PageRequest.of(page, 50));
+                for (Bookmark bookmark : batch.getContent()) {
+                    if (!queued.add(bookmark.getId())) {
+                        log.debug("[AI] Skipping already-queued bookmark {} (status={})", bookmark.getId(), status);
+                        continue;
+                    }
+                    log.info("[AI] Reprocessing bookmark {} (status={})", bookmark.getId(), status);
+                    bookmark.setAiStatus(AiStatus.PENDING);
+                    bookmarkRepository.save(bookmark);
+
+                    String scraped = scraperService.scrape(bookmark.getUrl()).bodyText();
+                    processBookmark(bookmark.getId(), scraped);
+                    processed++;
+                }
+                page++;
+            } while (batch.hasNext());
+        }
+
+        if (processed == 0) {
+            log.info("[AI] No unfinished bookmarks found — nothing to reprocess");
+        } else {
+            log.info("[AI] Queued {} bookmark(s) for reprocessing", processed);
         }
     }
 
