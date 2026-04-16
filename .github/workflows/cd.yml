@@ -72,6 +72,8 @@ jobs:
             --dry-run=client -o yaml | kubectl apply -f -
 
           kubectl apply -f k8s/postgres.yml
+          kubectl rollout status deployment/postgres -n devvault --timeout=120s
+
           kubectl apply -f k8s/backend.yml
           kubectl apply -f k8s/frontend.yml
           kubectl set image deployment/backend backend=${{ env.REGISTRY }}/backend:${{ github.sha }} -n devvault
