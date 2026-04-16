@@ -19,7 +19,7 @@ spec:
           command:
             - sh
             - -c
-            - until pg_isready -h postgres-service -p 5432; do echo "Waiting for postgres..."; sleep 2; done
+            - until pg_isready -h postgres-service -p 5432 -U postgres; do echo "Waiting for postgres..."; sleep 3; done; echo "Postgres ready, waiting 5s for full init..."; sleep 5
       containers:
         - name: backend
           image: us-central1-docker.pkg.dev/devvault-b3fd84/devvault/backend:latest
