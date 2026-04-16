@@ -1,10 +1,7 @@
 name: CI
 
 on:
-  push:
-    branches: [main]
-  pull_request:
-    branches: [main]
+  workflow_dispatch: # manually trigger only
 
 jobs:
   backend:
@@ -30,6 +27,7 @@ jobs:
       DB_USERNAME: postgres
       DB_PASSWORD: postgres
       GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+      JWT_SECRET: ${{ secrets.JWT_SECRET }}
 
     steps:
       - uses: actions/checkout@v4
