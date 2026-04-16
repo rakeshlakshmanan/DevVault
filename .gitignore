@@ -12,6 +12,7 @@ out/
 # Spring Boot
 *.jar
 !gradle/wrapper/gradle-wrapper.jar
+!backend/gradle/wrapper/gradle-wrapper.jar
 
 # Environment
 .env
