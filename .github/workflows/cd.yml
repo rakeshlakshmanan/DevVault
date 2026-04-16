@@ -1,0 +1,64 @@
+name: CD
+
+on:
+  push:
+    branches: [main]
+
+env:
+  PROJECT_ID: devvault-b3fd84
+  REGION: us-central1
+  REGISTRY: us-central1-docker.pkg.dev/devvault-b3fd84/devvault
+  CLUSTER: devvault-cluster
+
+jobs:
+  deploy:
+    name: Build & Deploy
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Authenticate to GCP
+        uses: google-github-actions/auth@v2
+        with:
+          credentials_json: ${{ secrets.GCP_SA_KEY }}
+
+      - name: Set up gcloud
+        uses: google-github-actions/setup-gcloud@v2
+
+      - name: Configure Docker for Artifact Registry
+        run: gcloud auth configure-docker ${{ env.REGION }}-docker.pkg.dev --quiet
+
+      - name: Build & push backend
+        run: |
+          docker build -t ${{ env.REGISTRY }}/backend:${{ github.sha }} \
+                       -t ${{ env.REGISTRY }}/backend:latest \
+                       ./backend
+          docker push ${{ env.REGISTRY }}/backend:${{ github.sha }}
+          docker push ${{ env.REGISTRY }}/backend:latest
+
+      - name: Build & push frontend
+        run: |
+          docker build -t ${{ env.REGISTRY }}/frontend:${{ github.sha }} \
+                       -t ${{ env.REGISTRY }}/frontend:latest \
+                       ./frontend
+          docker push ${{ env.REGISTRY }}/frontend:${{ github.sha }}
+          docker push ${{ env.REGISTRY }}/frontend:latest
+
+      - name: Get GKE credentials
+        run: |
+          gcloud container clusters get-credentials ${{ env.CLUSTER }} \
+            --location ${{ env.REGION }} \
+            --project ${{ env.PROJECT_ID }}
+
+      - name: Deploy to GKE
+        run: |
+          kubectl apply -f k8s/namespace.yml
+          kubectl apply -f k8s/secrets.yml
+          kubectl apply -f k8s/postgres.yml
+          kubectl apply -f k8s/backend.yml
+          kubectl apply -f k8s/frontend.yml
+          kubectl set image deployment/backend backend=${{ env.REGISTRY }}/backend:${{ github.sha }} -n devvault
+          kubectl set image deployment/frontend frontend=${{ env.REGISTRY }}/frontend:${{ github.sha }} -n devvault
+          kubectl rollout status deployment/backend -n devvault
+          kubectl rollout status deployment/frontend -n devvault
