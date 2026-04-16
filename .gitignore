@@ -19,6 +19,12 @@ out/
 application-local.yml
 application-prod.yml
 
+# Kubernetes secrets (contains real credentials)
+k8s/secrets.yml
+
+# GCP service account key
+sa-key.json
+
 # OS
 .DS_Store
 Thumbs.db
