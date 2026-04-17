@@ -1,5 +1,6 @@
 import { Star, MoreHorizontal, X, Loader2 } from "lucide-react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useNavigate } from "react-router-dom";
 import { Bookmark } from "@/data/types";
 import { contentTypeConfig, tagColorMap } from "@/lib/constants";
 import { tagsApi } from "@/api/tags";
@@ -12,6 +13,7 @@ const BookmarkCard = ({ bookmark }: BookmarkCardProps) => {
   const typeConfig = contentTypeConfig[bookmark.contentType];
   const TypeIcon = typeConfig.icon;
   const bookmarkId = bookmark.rawId ?? bookmark.id;
+  const navigate = useNavigate();
 
   const queryClient = useQueryClient();
 
@@ -21,7 +23,10 @@ const BookmarkCard = ({ bookmark }: BookmarkCardProps) => {
   });
 
   return (
-    <div className="group flex items-start gap-3 p-4 rounded-lg bg-card border border-border hover:border-primary/30 hover:bg-surface-hover transition-default cursor-pointer">
+    <div
+      className="group flex items-start gap-3 p-4 rounded-lg bg-card border border-border hover:border-primary/30 hover:bg-surface-hover transition-default cursor-pointer"
+      onClick={() => navigate(`/bookmarks/${bookmarkId}`)}
+    >
       <div className={`mt-1 p-1.5 rounded-md bg-muted ${typeConfig.colorClass}`}>
         <TypeIcon size={14} />
       </div>
@@ -76,13 +81,19 @@ const BookmarkCard = ({ bookmark }: BookmarkCardProps) => {
       <div className="flex flex-col items-end gap-2 shrink-0">
         <span className="text-[11px] text-muted-foreground">{bookmark.timestamp}</span>
         <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-default">
-          <button className="p-1 rounded hover:bg-muted transition-default">
+          <button
+            onClick={(e) => e.stopPropagation()}
+            className="p-1 rounded hover:bg-muted transition-default"
+          >
             <Star
               size={14}
               className={bookmark.isFavorite ? "fill-warning text-warning" : "text-muted-foreground"}
             />
           </button>
-          <button className="p-1 rounded hover:bg-muted transition-default">
+          <button
+            onClick={(e) => e.stopPropagation()}
+            className="p-1 rounded hover:bg-muted transition-default"
+          >
             <MoreHorizontal size={14} className="text-muted-foreground" />
           </button>
         </div>
