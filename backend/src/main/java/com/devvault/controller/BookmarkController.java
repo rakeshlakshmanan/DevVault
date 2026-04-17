@@ -3,9 +3,11 @@ package com.devvault.controller;
 import com.devvault.dto.request.BookmarkCreateRequest;
 import com.devvault.dto.request.BookmarkUpdateRequest;
 import com.devvault.dto.response.BookmarkResponse;
+import com.devvault.dto.response.CollectionResponse;
 import com.devvault.dto.response.PageResponse;
 import com.devvault.enums.ContentType;
 import com.devvault.service.BookmarkService;
+import com.devvault.service.CollectionService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.PageRequest;
@@ -15,6 +17,7 @@ import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
 import java.util.UUID;
 
 @RestController
@@ -23,6 +26,7 @@ import java.util.UUID;
 public class BookmarkController {
 
     private final BookmarkService bookmarkService;
+    private final CollectionService collectionService;
 
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
@@ -45,6 +49,12 @@ public class BookmarkController {
     public BookmarkResponse get(@PathVariable UUID id,
                                 @AuthenticationPrincipal UserDetails userDetails) {
         return bookmarkService.getById(id, currentUserId(userDetails));
+    }
+
+    @GetMapping("/{id}/collections")
+    public List<CollectionResponse> getCollections(@PathVariable UUID id,
+                                                   @AuthenticationPrincipal UserDetails userDetails) {
+        return collectionService.getCollectionsForBookmark(id, currentUserId(userDetails));
     }
 
     @PatchMapping("/{id}")
