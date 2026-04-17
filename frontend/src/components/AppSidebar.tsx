@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useLocation, Link, useNavigate } from "react-router-dom";
 import {
   LayoutDashboard, Bookmark, FolderOpen, Hash, Star, Compass,
-  Brain, ChevronLeft, ChevronRight, ChevronDown, LogOut
+  Brain, ChevronLeft, ChevronRight, ChevronDown, LogOut, Users
 } from "lucide-react";
 import { motion } from "framer-motion";
 import { useAuth } from "@/context/AuthContext";
@@ -14,6 +14,7 @@ const navItems = [
   { label: "Tags", icon: Hash, path: "/tags" },
   { label: "Favorites", icon: Star, path: "/favorites" },
   { label: "Explore", icon: Compass, path: "/explore" },
+  { label: "Friends", icon: Users, path: "/friends" },
 ];
 
 const AppSidebar = () => {
