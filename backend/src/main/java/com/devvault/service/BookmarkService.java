@@ -13,6 +13,7 @@ import com.devvault.exception.ResourceNotFoundException;
 import com.devvault.mapper.BookmarkMapper;
 import com.devvault.repository.BookmarkRepository;
 import com.devvault.repository.BookmarkTagRepository;
+import com.devvault.repository.SharedBookmarkRepository;
 import com.devvault.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.ApplicationEventPublisher;
@@ -37,6 +38,7 @@ public class BookmarkService {
     private final BookmarkRepository bookmarkRepository;
     private final BookmarkTagRepository bookmarkTagRepository;
     private final UserRepository userRepository;
+    private final SharedBookmarkRepository sharedBookmarkRepository;
     private final TagService tagService;
     private final ScraperService scraperService;
     private final BookmarkMapper bookmarkMapper;
@@ -129,7 +131,9 @@ public class BookmarkService {
         Bookmark bookmark = bookmarkRepository.findById(bookmarkId)
                 .orElseThrow(() -> new ResourceNotFoundException("Bookmark", bookmarkId));
 
-        if (!bookmark.getUser().getId().equals(userId) && !bookmark.isPublic()) {
+        boolean isOwner = bookmark.getUser().getId().equals(userId);
+        boolean isSharedWithUser = sharedBookmarkRepository.existsByBookmarkIdAndReceiverId(bookmarkId, userId);
+        if (!isOwner && !bookmark.isPublic() && !isSharedWithUser) {
             throw new ResourceNotFoundException("Bookmark", bookmarkId);
         }
 
