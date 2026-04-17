@@ -17,6 +17,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.List;
 import java.util.UUID;
 
 /**
@@ -152,6 +153,15 @@ public class CollectionService {
      * @param userId       the ID of the requesting user; must be the collection owner
      * @throws ResourceNotFoundException if the collection does not exist or is not owned by the user
      */
+    @Transactional(readOnly = true)
+    public List<CollectionResponse> getCollectionsForBookmark(UUID bookmarkId, UUID userId) {
+        return collectionBookmarkRepository.findByBookmarkIdAndCollectionUserId(bookmarkId, userId)
+                .stream()
+                .map(cb -> toResponse(cb.getCollection(),
+                        collectionBookmarkRepository.countByCollectionId(cb.getCollection().getId())))
+                .toList();
+    }
+
     @Transactional
     public void delete(UUID collectionId, UUID userId) {
         Collection collection = getOwnedCollection(collectionId, userId);
