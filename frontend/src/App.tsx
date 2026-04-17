@@ -13,6 +13,7 @@ import Tags from "@/pages/Tags";
 import Profile from "@/pages/Profile";
 import Login from "@/pages/Login";
 import OAuth2Callback from "@/pages/OAuth2Callback";
+import BookmarkDetail from "@/pages/BookmarkDetail";
 import NotFound from "./pages/NotFound";
 import { AuthProvider, useAuth } from "@/context/AuthContext";
 
@@ -47,6 +48,7 @@ const AppLayout = () => {
           <Routes>
             <Route path="/" element={<Dashboard />} />
             <Route path="/bookmarks" element={<Bookmarks />} />
+            <Route path="/bookmarks/:id" element={<BookmarkDetail />} />
             <Route path="/collections" element={<Collections />} />
             <Route path="/tags" element={<Tags />} />
             <Route path="/favorites" element={<ComingSoon title="Favorites" />} />
