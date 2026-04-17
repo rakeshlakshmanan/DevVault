@@ -49,6 +49,13 @@ export const bookmarksApi = {
 
   delete: (id: string) => api.delete<void>(`/bookmarks/${id}`),
 
+  getById: (id: string) => api.get<BookmarkResponse>(`/bookmarks/${id}`),
+
+  getCollections: (id: string) =>
+    api.get<{ id: string; name: string; description: string; isPublic: boolean; bookmarkCount: number }[]>(
+      `/bookmarks/${id}/collections`
+    ),
+
   search: (q: string, page = 0, size = 20) => {
     const params = new URLSearchParams({ q, page: String(page), size: String(size) });
     return api.get<PageResponse<BookmarkResponse>>(`/bookmarks/search?${params}`);
