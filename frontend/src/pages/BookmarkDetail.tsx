@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { useQuery, useMutation } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   ArrowLeft,
   ExternalLink,
@@ -9,6 +9,7 @@ import {
   Calendar,
   Globe,
   Send,
+  Trash2,
   X,
   UserCheck,
 } from "lucide-react";
@@ -114,7 +115,17 @@ function SendToFriendModal({ bookmarkId, onClose }: { bookmarkId: string; onClos
 export default function BookmarkDetail() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const [shareOpen, setShareOpen] = useState(false);
+
+  const { mutate: deleteBookmark, isPending: isDeleting } = useMutation({
+    mutationFn: () => bookmarksApi.delete(id!),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["bookmarks"] });
+      queryClient.invalidateQueries({ queryKey: ["tags"] });
+      navigate("/bookmarks");
+    },
+  });
 
   const { data: bookmark, isLoading, isError } = useQuery({
     queryKey: ["bookmark", id],
@@ -213,6 +224,14 @@ export default function BookmarkDetail() {
           >
             <Send size={14} />
             Send to Friend
+          </button>
+          <button
+            onClick={() => deleteBookmark()}
+            disabled={isDeleting}
+            className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-destructive/10 border border-destructive/20 text-sm font-medium text-destructive hover:bg-destructive/20 transition-default disabled:opacity-50"
+          >
+            {isDeleting ? <Loader2 size={14} className="animate-spin" /> : <Trash2 size={14} />}
+            Delete
           </button>
         </div>
       </div>
