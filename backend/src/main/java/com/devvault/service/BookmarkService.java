@@ -176,6 +176,8 @@ public class BookmarkService {
     public void delete(UUID bookmarkId, UUID userId) {
         Bookmark bookmark = getOwnedBookmark(bookmarkId, userId);
         bookmarkRepository.delete(bookmark);
+        bookmarkRepository.flush();
+        tagService.deleteOrphanedTags();
     }
 
     /**
