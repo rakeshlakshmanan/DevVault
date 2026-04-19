@@ -119,6 +119,16 @@ public class TagService {
     }
 
     /**
+     * Removes tags that are no longer associated with any bookmark.
+     *
+     * <p>Called after a bookmark is deleted to keep the tags table clean.</p>
+     */
+    @Transactional
+    public void deleteOrphanedTags() {
+        tagRepository.deleteOrphanedTags();
+    }
+
+    /**
      * Looks up a tag by name (case-insensitive) or creates a new one with the given source.
      *
      * <p>The tag name is stored in lower-case to ensure consistent deduplication.</p>
