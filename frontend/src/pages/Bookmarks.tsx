@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Search, Trash2, Loader2 } from "lucide-react";
+import { Search, Loader2 } from "lucide-react";
 import { bookmarksApi } from "@/api/bookmarks";
 import BookmarkCard from "@/components/BookmarkCard";
 import type { Bookmark as BookmarkType, TagColor } from "@/data/types";
@@ -54,7 +54,10 @@ export default function Bookmarks() {
 
   const { mutate: deleteBookmark } = useMutation({
     mutationFn: (id: string) => bookmarksApi.delete(id),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["bookmarks"] }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["bookmarks"] });
+      queryClient.invalidateQueries({ queryKey: ["tags"] });
+    },
   });
 
   const source = search.trim().length > 1 ? searchData : data;
@@ -127,15 +130,7 @@ export default function Bookmarks() {
       ) : (
         <div className="space-y-2">
           {bookmarks.map((b) => (
-            <div key={b.id} className="group relative">
-              <BookmarkCard bookmark={b} />
-              <button
-                onClick={() => deleteBookmark(b.rawId)}
-                className="absolute top-3 right-3 p-1.5 rounded opacity-0 group-hover:opacity-100 hover:bg-destructive/10 text-muted-foreground hover:text-destructive transition-all"
-              >
-                <Trash2 size={14} />
-              </button>
-            </div>
+            <BookmarkCard key={b.id} bookmark={b} onDelete={() => deleteBookmark(b.rawId)} />
           ))}
         </div>
       )}
