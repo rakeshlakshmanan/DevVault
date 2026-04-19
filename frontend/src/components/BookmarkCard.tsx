@@ -1,4 +1,4 @@
-import { Star, MoreHorizontal, X, Loader2 } from "lucide-react";
+import { Star, Trash2, X, Loader2 } from "lucide-react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
 import { Bookmark } from "@/data/types";
@@ -7,9 +7,10 @@ import { tagsApi } from "@/api/tags";
 
 interface BookmarkCardProps {
   bookmark: Bookmark & { rawId?: string };
+  onDelete?: () => void;
 }
 
-const BookmarkCard = ({ bookmark }: BookmarkCardProps) => {
+const BookmarkCard = ({ bookmark, onDelete }: BookmarkCardProps) => {
   const typeConfig = contentTypeConfig[bookmark.contentType];
   const TypeIcon = typeConfig.icon;
   const bookmarkId = bookmark.rawId ?? bookmark.id;
@@ -91,10 +92,11 @@ const BookmarkCard = ({ bookmark }: BookmarkCardProps) => {
             />
           </button>
           <button
-            onClick={(e) => e.stopPropagation()}
-            className="p-1 rounded hover:bg-muted transition-default"
+            onClick={(e) => { e.stopPropagation(); onDelete?.(); }}
+            className="p-1 rounded hover:bg-muted hover:text-destructive transition-default text-muted-foreground"
+            title="Delete bookmark"
           >
-            <MoreHorizontal size={14} className="text-muted-foreground" />
+            <Trash2 size={14} />
           </button>
         </div>
       </div>
