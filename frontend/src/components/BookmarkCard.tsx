@@ -4,6 +4,7 @@ import { useNavigate } from "react-router-dom";
 import { Bookmark } from "@/data/types";
 import { contentTypeConfig, tagColorMap } from "@/lib/constants";
 import { tagsApi } from "@/api/tags";
+import { favoritesApi } from "@/api/favorites";
 
 interface BookmarkCardProps {
   bookmark: Bookmark & { rawId?: string };
@@ -21,6 +22,14 @@ const BookmarkCard = ({ bookmark, onDelete }: BookmarkCardProps) => {
   const { mutate: removeTag, variables: removingTagId } = useMutation({
     mutationFn: (tagId: string) => tagsApi.remove(bookmarkId, tagId),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["bookmarks"] }),
+  });
+
+  const { mutate: toggleFavorite } = useMutation({
+    mutationFn: () => favoritesApi.toggle(bookmarkId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["favorites"] });
+      queryClient.invalidateQueries({ queryKey: ["bookmarks"] });
+    },
   });
 
   return (
@@ -83,8 +92,9 @@ const BookmarkCard = ({ bookmark, onDelete }: BookmarkCardProps) => {
         <span className="text-[11px] text-muted-foreground">{bookmark.timestamp}</span>
         <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-default">
           <button
-            onClick={(e) => e.stopPropagation()}
+            onClick={(e) => { e.stopPropagation(); toggleFavorite(); }}
             className="p-1 rounded hover:bg-muted transition-default"
+            title={bookmark.isFavorite ? "Remove from favorites" : "Add to favorites"}
           >
             <Star
               size={14}
