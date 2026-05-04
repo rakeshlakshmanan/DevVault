@@ -12,11 +12,15 @@ import {
   Trash2,
   X,
   UserCheck,
+  Pencil,
+  Star,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { bookmarksApi } from "@/api/bookmarks";
 import { friendsApi } from "@/api/friends";
 import { sharesApi } from "@/api/shares";
+import { favoritesApi } from "@/api/favorites";
+import EditBookmarkModal from "@/components/EditBookmarkModal";
 import { contentTypeConfig, tagColorMap } from "@/lib/constants";
 import type { ContentType, TagColor } from "@/data/types";
 
@@ -117,6 +121,20 @@ export default function BookmarkDetail() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [shareOpen, setShareOpen] = useState(false);
+  const [editOpen, setEditOpen] = useState(false);
+
+  const { data: favData } = useQuery({
+    queryKey: ["favorites", "check", id],
+    queryFn: () => favoritesApi.check(id!),
+    enabled: !!id,
+  });
+
+  const { mutate: toggleFavorite } = useMutation({
+    mutationFn: () => favoritesApi.toggle(id!),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["favorites"] });
+    },
+  });
 
   const { mutate: deleteBookmark, isPending: isDeleting } = useMutation({
     mutationFn: () => bookmarksApi.delete(id!),
@@ -219,6 +237,24 @@ export default function BookmarkDetail() {
             Open link
           </a>
           <button
+            onClick={() => toggleFavorite()}
+            className={`inline-flex items-center gap-2 px-4 py-2 rounded-lg border text-sm font-medium transition-default ${
+              favData?.isFavorited
+                ? "bg-warning/10 border-warning/30 text-warning hover:bg-warning/20"
+                : "bg-muted border-border text-foreground hover:border-primary/30 hover:bg-muted/80"
+            }`}
+          >
+            <Star size={14} className={favData?.isFavorited ? "fill-warning" : ""} />
+            {favData?.isFavorited ? "Favorited" : "Favorite"}
+          </button>
+          <button
+            onClick={() => setEditOpen(true)}
+            className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-muted border border-border text-sm font-medium text-foreground hover:border-primary/30 hover:bg-muted/80 transition-default"
+          >
+            <Pencil size={14} />
+            Edit
+          </button>
+          <button
             onClick={() => setShareOpen(true)}
             className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-muted border border-border text-sm font-medium text-foreground hover:border-primary/30 hover:bg-muted/80 transition-default"
           >
@@ -298,6 +334,9 @@ export default function BookmarkDetail() {
       <AnimatePresence>
         {shareOpen && (
           <SendToFriendModal bookmarkId={id!} onClose={() => setShareOpen(false)} />
+        )}
+        {editOpen && bookmark && (
+          <EditBookmarkModal bookmark={bookmark} onClose={() => setEditOpen(false)} />
         )}
       </AnimatePresence>
     </div>
