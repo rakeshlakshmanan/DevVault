@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Search, Loader2 } from "lucide-react";
 import { bookmarksApi } from "@/api/bookmarks";
+import { favoritesApi } from "@/api/favorites";
 import BookmarkCard from "@/components/BookmarkCard";
 import type { Bookmark as BookmarkType, TagColor } from "@/data/types";
 
@@ -52,6 +53,12 @@ export default function Bookmarks() {
     enabled: search.trim().length > 1,
   });
 
+  const { data: favoriteIds } = useQuery({
+    queryKey: ["favorites", "ids"],
+    queryFn: () => favoritesApi.listIds(),
+  });
+  const favoriteSet = new Set(favoriteIds ?? []);
+
   const { mutate: deleteBookmark } = useMutation({
     mutationFn: (id: string) => bookmarksApi.delete(id),
     onSuccess: () => {
@@ -73,7 +80,7 @@ export default function Bookmarks() {
     contentType: (b.contentType?.toLowerCase() as BookmarkType["contentType"]) || "blog",
     tags: (b.tags ?? []).map((t) => ({ id: t.id, name: t.name, color: colorForTag(t.name) })),
     timestamp: b.createdAt ? timeAgo(b.createdAt) : "",
-    isFavorite: false,
+    isFavorite: favoriteSet.has(b.id),
     isProcessing: b.aiStatus === "PENDING" || b.aiStatus === "PROCESSING",
   }));
 
