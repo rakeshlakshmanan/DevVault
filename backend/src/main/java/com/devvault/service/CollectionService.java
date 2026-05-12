@@ -1,6 +1,7 @@
 package com.devvault.service;
 
 import com.devvault.dto.request.CollectionCreateRequest;
+import com.devvault.dto.request.CollectionUpdateRequest;
 import com.devvault.dto.response.BookmarkResponse;
 import com.devvault.dto.response.CollectionResponse;
 import com.devvault.dto.response.PageResponse;
@@ -160,6 +161,19 @@ public class CollectionService {
                 .map(cb -> toResponse(cb.getCollection(),
                         collectionBookmarkRepository.countByCollectionId(cb.getCollection().getId())))
                 .toList();
+    }
+
+    @Transactional
+    public CollectionResponse update(UUID collectionId, CollectionUpdateRequest request, UUID userId) {
+        Collection collection = getOwnedCollection(collectionId, userId);
+
+        if (request.getName() != null && !request.getName().isBlank()) collection.setName(request.getName());
+        if (request.getDescription() != null) collection.setDescription(request.getDescription());
+        if (request.getIsPublic() != null) collection.setPublic(request.getIsPublic());
+
+        collection = collectionRepository.save(collection);
+        int count = collectionBookmarkRepository.countByCollectionId(collectionId);
+        return toResponse(collection, count);
     }
 
     @Transactional
