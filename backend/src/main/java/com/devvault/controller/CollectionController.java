@@ -1,6 +1,7 @@
 package com.devvault.controller;
 
 import com.devvault.dto.request.CollectionCreateRequest;
+import com.devvault.dto.request.CollectionUpdateRequest;
 import com.devvault.dto.response.BookmarkResponse;
 import com.devvault.dto.response.CollectionResponse;
 import com.devvault.dto.response.PageResponse;
@@ -63,6 +64,13 @@ public class CollectionController {
             @AuthenticationPrincipal UserDetails userDetails) {
         PageRequest pageable = PageRequest.of(page, size);
         return collectionService.getBookmarks(id, currentUserId(userDetails), pageable);
+    }
+
+    @PatchMapping("/{id}")
+    public CollectionResponse update(@PathVariable UUID id,
+                                     @Valid @RequestBody CollectionUpdateRequest request,
+                                     @AuthenticationPrincipal UserDetails userDetails) {
+        return collectionService.update(id, request, currentUserId(userDetails));
     }
 
     @DeleteMapping("/{id}")
