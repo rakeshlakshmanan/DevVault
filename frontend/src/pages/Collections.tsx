@@ -9,6 +9,7 @@ import {
   Plus,
   X,
   FolderOpen,
+  Pencil,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { collectionsApi, type CollectionResponse } from "@/api/collections";
@@ -177,6 +178,116 @@ function CreateCollectionModal({ isOpen, onClose }: CreateModalProps) {
   );
 }
 
+// ─── edit collection modal ───────────────────────────────────────────────────
+
+interface EditModalProps {
+  collection: CollectionResponse;
+  onClose: () => void;
+}
+
+function EditCollectionModal({ collection, onClose }: EditModalProps) {
+  const [name, setName] = useState(collection.name);
+  const [description, setDescription] = useState(collection.description ?? "");
+  const [isPublic, setIsPublic] = useState(collection.isPublic);
+  const [error, setError] = useState("");
+
+  const queryClient = useQueryClient();
+
+  const { mutate: save, isPending } = useMutation({
+    mutationFn: () => collectionsApi.update(collection.id, {
+      name: name.trim() || undefined,
+      description,
+      isPublic,
+    }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["collections"] });
+      onClose();
+    },
+    onError: (err: Error) => setError(err.message),
+  });
+
+  return (
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 backdrop-blur-sm"
+      onClick={onClose}
+    >
+      <motion.div
+        initial={{ opacity: 0, scale: 0.95, y: 10 }}
+        animate={{ opacity: 1, scale: 1, y: 0 }}
+        exit={{ opacity: 0, scale: 0.95, y: 10 }}
+        transition={{ duration: 0.15 }}
+        className="w-full max-w-[480px] mx-4 bg-card border border-border rounded-xl p-6"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="flex items-center justify-between mb-5">
+          <h2 className="text-lg font-semibold text-foreground">Edit Collection</h2>
+          <button onClick={onClose} className="p-1 rounded hover:bg-muted transition-default">
+            <X size={18} className="text-muted-foreground" />
+          </button>
+        </div>
+
+        <div className="space-y-4">
+          <div>
+            <label className="block text-xs font-medium text-muted-foreground mb-1.5">Name</label>
+            <input
+              type="text"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              autoFocus
+              className="w-full bg-muted border border-border rounded-lg px-3 py-2.5 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary/50 focus:ring-1 focus:ring-primary/30 transition-default"
+            />
+          </div>
+
+          <div>
+            <label className="block text-xs font-medium text-muted-foreground mb-1.5">
+              Description <span className="font-normal">(optional)</span>
+            </label>
+            <textarea
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              rows={2}
+              className="w-full bg-muted border border-border rounded-lg px-3 py-2.5 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary/50 focus:ring-1 focus:ring-primary/30 transition-default resize-none"
+            />
+          </div>
+
+          <label className="flex items-center gap-2 text-sm text-muted-foreground cursor-pointer">
+            <button
+              type="button"
+              onClick={() => setIsPublic(!isPublic)}
+              className={`w-9 h-5 rounded-full transition-default relative ${isPublic ? "bg-primary" : "bg-muted border border-border"}`}
+            >
+              <span className={`absolute top-0.5 w-4 h-4 rounded-full bg-foreground transition-default ${isPublic ? "left-[18px]" : "left-0.5"}`} />
+            </button>
+            Make collection public
+          </label>
+
+          {error && <p className="text-sm text-destructive">{error}</p>}
+
+          <div className="flex gap-3">
+            <button
+              onClick={onClose}
+              className="flex-1 py-2.5 rounded-lg bg-muted text-muted-foreground text-sm font-medium hover:text-foreground transition-default"
+            >
+              Cancel
+            </button>
+            <button
+              onClick={() => save()}
+              disabled={!name.trim() || isPending}
+              className="flex-1 py-2.5 rounded-lg bg-primary text-primary-foreground font-medium text-sm hover:brightness-110 transition-default disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+            >
+              {isPending && <Loader2 size={14} className="animate-spin" />}
+              Save Changes
+            </button>
+          </div>
+        </div>
+      </motion.div>
+    </motion.div>
+  );
+}
+
 // ─── add bookmarks modal ─────────────────────────────────────────────────────
 
 interface AddBookmarksModalProps {
@@ -316,6 +427,7 @@ interface DetailViewProps {
 function CollectionDetail({ collection, colorClass, onBack }: DetailViewProps) {
   const [page, setPage] = useState(0);
   const [addOpen, setAddOpen] = useState(false);
+  const [editOpen, setEditOpen] = useState(false);
 
   const queryClient = useQueryClient();
 
@@ -357,13 +469,22 @@ function CollectionDetail({ collection, colorClass, onBack }: DetailViewProps) {
             {data?.totalElements ?? collection.bookmarkCount} bookmark{(data?.totalElements ?? collection.bookmarkCount) !== 1 ? "s" : ""}
           </p>
         </div>
-        <button
-          onClick={() => setAddOpen(true)}
-          className="shrink-0 flex items-center gap-1.5 px-4 py-2 rounded-lg bg-primary text-primary-foreground text-sm font-medium hover:brightness-110 transition-default"
-        >
-          <Plus size={14} />
-          Add Bookmarks
-        </button>
+        <div className="flex items-center gap-2 shrink-0">
+          <button
+            onClick={() => setEditOpen(true)}
+            className="flex items-center gap-1.5 px-3 py-2 rounded-lg bg-muted border border-border text-sm font-medium text-foreground hover:border-primary/30 transition-default"
+          >
+            <Pencil size={13} />
+            Edit
+          </button>
+          <button
+            onClick={() => setAddOpen(true)}
+            className="flex items-center gap-1.5 px-4 py-2 rounded-lg bg-primary text-primary-foreground text-sm font-medium hover:brightness-110 transition-default"
+          >
+            <Plus size={14} />
+            Add Bookmarks
+          </button>
+        </div>
       </div>
 
       {/* Bookmarks */}
@@ -423,6 +544,11 @@ function CollectionDetail({ collection, colorClass, onBack }: DetailViewProps) {
         collectionId={collection.id}
         existingBookmarkIds={existingIds}
       />
+      <AnimatePresence>
+        {editOpen && (
+          <EditCollectionModal collection={collection} onClose={() => setEditOpen(false)} />
+        )}
+      </AnimatePresence>
     </div>
   );
 }
@@ -435,6 +561,7 @@ interface ListViewProps {
 
 function CollectionList({ onSelect }: ListViewProps) {
   const [createOpen, setCreateOpen] = useState(false);
+  const [editTarget, setEditTarget] = useState<CollectionResponse | null>(null);
   const queryClient = useQueryClient();
 
   const { data, isLoading, isError } = useQuery({
@@ -509,13 +636,22 @@ function CollectionList({ onSelect }: ListViewProps) {
                 {c.description && (
                   <p className="text-xs text-muted-foreground mt-1 px-1 truncate">{c.description}</p>
                 )}
-                <button
-                  onClick={(e) => { e.stopPropagation(); deleteCollection(c.id); }}
-                  className="absolute top-3 right-3 p-1.5 rounded opacity-0 group-hover:opacity-100 hover:bg-destructive/10 text-muted-foreground hover:text-destructive transition-all"
-                  title="Delete collection"
-                >
-                  <Trash2 size={13} />
-                </button>
+                <div className="absolute top-3 right-3 flex gap-1 opacity-0 group-hover:opacity-100 transition-all">
+                  <button
+                    onClick={(e) => { e.stopPropagation(); setEditTarget(c); }}
+                    className="p-1.5 rounded hover:bg-muted text-muted-foreground hover:text-foreground transition-default"
+                    title="Edit collection"
+                  >
+                    <Pencil size={13} />
+                  </button>
+                  <button
+                    onClick={(e) => { e.stopPropagation(); deleteCollection(c.id); }}
+                    className="p-1.5 rounded hover:bg-destructive/10 text-muted-foreground hover:text-destructive transition-default"
+                    title="Delete collection"
+                  >
+                    <Trash2 size={13} />
+                  </button>
+                </div>
               </div>
             );
           })}
@@ -523,6 +659,11 @@ function CollectionList({ onSelect }: ListViewProps) {
       )}
 
       <CreateCollectionModal isOpen={createOpen} onClose={() => setCreateOpen(false)} />
+      <AnimatePresence>
+        {editTarget && (
+          <EditCollectionModal collection={editTarget} onClose={() => setEditTarget(null)} />
+        )}
+      </AnimatePresence>
     </div>
   );
 }
