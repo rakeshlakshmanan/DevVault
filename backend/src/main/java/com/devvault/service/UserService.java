@@ -1,5 +1,7 @@
 package com.devvault.service;
 
+import com.devvault.dto.request.UserUpdateRequest;
+import com.devvault.dto.response.UserMeResponse;
 import com.devvault.dto.response.UserProfileResponse;
 import com.devvault.exception.ResourceNotFoundException;
 import com.devvault.mapper.UserMapper;
@@ -7,6 +9,9 @@ import com.devvault.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.util.StringUtils;
+
+import java.util.UUID;
 
 /**
  * Service for user profile operations.
@@ -41,5 +46,29 @@ public class UserService {
         }
 
         return userMapper.toProfileResponse(user);
+    }
+
+    @Transactional(readOnly = true)
+    public UserMeResponse getOwnProfile(UUID userId) {
+        var user = userRepository.findById(userId)
+                .orElseThrow(() -> new ResourceNotFoundException("User", userId));
+        return userMapper.toMeResponse(user);
+    }
+
+    @Transactional
+    public UserMeResponse updateProfile(UUID userId, UserUpdateRequest request) {
+        var user = userRepository.findById(userId)
+                .orElseThrow(() -> new ResourceNotFoundException("User", userId));
+
+        if (StringUtils.hasText(request.getUsername()) && !request.getUsername().equals(user.getUsername())) {
+            if (userRepository.existsByUsername(request.getUsername())) {
+                throw new IllegalArgumentException("Username already taken");
+            }
+            user.setUsername(request.getUsername());
+        }
+        if (request.getBio() != null) user.setBio(request.getBio());
+        if (request.getPublicProfile() != null) user.setPublicProfile(request.getPublicProfile());
+
+        return userMapper.toMeResponse(userRepository.save(user));
     }
 }
