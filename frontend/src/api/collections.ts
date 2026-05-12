@@ -20,6 +20,9 @@ export const collectionsApi = {
   create: (name: string, description?: string, isPublic = false) =>
     api.post<CollectionResponse>('/collections', { name, description, isPublic }),
 
+  update: (id: string, data: { name?: string; description?: string; isPublic?: boolean }) =>
+    api.patch<CollectionResponse>(`/collections/${id}`, data),
+
   delete: (id: string) => api.delete<void>(`/collections/${id}`),
 
   getBookmarks: (collectionId: string, page = 0, size = 20) => {
