@@ -190,7 +190,7 @@ public class AiService {
     }
 
     /**
-     * Builds the text prompt sent to Gemini, requesting a 2–3 sentence summary
+     * Builds the text prompt sent to Gemini, requesting a detailed paragraph summary
      * and 3–5 comma-separated tags in a fixed {@code SUMMARY: / TAGS:} format.
      *
      * @param title   the bookmark title (may be {@code null})
@@ -202,7 +202,7 @@ public class AiService {
         if (hasContent) {
             return """
                     Analyze the following web content and provide:
-                    1. A concise summary (2-3 sentences)
+                    1. A detailed summary as a single well-written paragraph (5-7 sentences) that covers the main topic, key points, and any notable details or takeaways from the content
                     2. 3-5 relevant tags (single words or short phrases)
 
                     Respond in exactly this format:
@@ -215,7 +215,7 @@ public class AiService {
         } else {
             return """
                     Based only on the page title below, infer what this bookmark is likely about and provide:
-                    1. A concise summary (2-3 sentences)
+                    1. A detailed summary as a single well-written paragraph (5-7 sentences) that covers the likely main topic, key points, and any notable details or takeaways
                     2. 3-5 relevant tags (single words or short phrases)
 
                     Respond in exactly this format:
@@ -277,7 +277,7 @@ public class AiService {
     /**
      * Holds the AI-generated output for a single bookmark.
      *
-     * @param summary a 2–3 sentence plain-text summary of the bookmarked content
+     * @param summary a detailed paragraph plain-text summary of the bookmarked content
      * @param tags    a list of 3–5 short tag strings suggested by the model
      */
     public record AiResult(String summary, List<String> tags) {}
