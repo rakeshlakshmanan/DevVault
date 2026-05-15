@@ -1,6 +1,6 @@
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Search, Bell, Plus } from "lucide-react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "@/context/AuthContext";
 
 interface TopBarProps {
@@ -9,10 +9,50 @@ interface TopBarProps {
 }
 
 const TopBar = ({ title, onAddBookmark }: TopBarProps) => {
+  const [searchValue, setSearchValue] = useState("");
   const [searchFocused, setSearchFocused] = useState(false);
   const { user } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
+  const inputRef = useRef<HTMLInputElement>(null);
   const initials = user?.username ? user.username.slice(0, 2).toUpperCase() : "?";
+
+  // Sync TopBar input with the ?q= URL param when on /bookmarks
+  useEffect(() => {
+    if (location.pathname.startsWith("/bookmarks")) {
+      const q = new URLSearchParams(location.search).get("q") ?? "";
+      setSearchValue(q);
+    } else {
+      setSearchValue("");
+    }
+  }, [location.pathname, location.search]);
+
+  // ⌘K / Ctrl+K focuses the search input
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key === "k") {
+        e.preventDefault();
+        inputRef.current?.focus();
+      }
+    };
+    window.addEventListener("keydown", handler);
+    return () => window.removeEventListener("keydown", handler);
+  }, []);
+
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === "Enter") {
+      const q = searchValue.trim();
+      if (q) {
+        navigate(`/bookmarks?q=${encodeURIComponent(q)}`);
+      } else {
+        navigate("/bookmarks");
+      }
+      inputRef.current?.blur();
+    } else if (e.key === "Escape") {
+      setSearchValue("");
+      inputRef.current?.blur();
+    }
+  };
 
   return (
     <div className="sticky top-0 z-30 flex items-center gap-4 px-6 py-3 bg-background/80 backdrop-blur-md border-b border-border">
@@ -22,7 +62,11 @@ const TopBar = ({ title, onAddBookmark }: TopBarProps) => {
         <div className={`relative transition-default ${searchFocused ? "ring-1 ring-primary/40" : ""} rounded-lg`}>
           <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
           <input
+            ref={inputRef}
             type="text"
+            value={searchValue}
+            onChange={(e) => setSearchValue(e.target.value)}
+            onKeyDown={handleKeyDown}
             placeholder="Search bookmarks..."
             onFocus={() => setSearchFocused(true)}
             onBlur={() => setSearchFocused(false)}
