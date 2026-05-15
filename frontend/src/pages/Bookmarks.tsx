@@ -1,5 +1,6 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useSearchParams } from "react-router-dom";
 import { Search, Loader2 } from "lucide-react";
 import { bookmarksApi } from "@/api/bookmarks";
 import { favoritesApi } from "@/api/favorites";
@@ -28,11 +29,28 @@ function timeAgo(iso: string): string {
 const CONTENT_TYPES = ["all", "blog", "repo", "video", "paper", "social"] as const;
 
 export default function Bookmarks() {
-  const [search, setSearch] = useState("");
+  const [searchParams, setSearchParams] = useSearchParams();
+  const [search, setSearch] = useState(() => searchParams.get("q") ?? "");
   const [typeFilter, setTypeFilter] = useState("all");
   const [page, setPage] = useState(0);
 
   const queryClient = useQueryClient();
+
+  // When URL ?q= changes (e.g. from TopBar navigation), sync local state
+  useEffect(() => {
+    const q = searchParams.get("q") ?? "";
+    setSearch(q);
+  }, [searchParams]);
+
+  const handleSearchChange = (value: string) => {
+    setSearch(value);
+    setPage(0);
+    if (value.trim()) {
+      setSearchParams({ q: value }, { replace: true });
+    } else {
+      setSearchParams({}, { replace: true });
+    }
+  };
 
   const { data, isLoading, isError } = useQuery({
     queryKey: ["bookmarks", "all", typeFilter, page],
@@ -99,7 +117,7 @@ export default function Bookmarks() {
         <input
           type="text"
           value={search}
-          onChange={(e) => setSearch(e.target.value)}
+          onChange={(e) => handleSearchChange(e.target.value)}
           placeholder="Search bookmarks..."
           className="w-full bg-muted border border-border rounded-lg pl-10 pr-4 py-2.5 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary/50 focus:ring-1 focus:ring-primary/30"
         />
