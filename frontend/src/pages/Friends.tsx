@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Search, UserPlus, UserCheck, UserX, Users, Loader2, X, Clock, Inbox, ExternalLink } from "lucide-react";
+import { Search, UserPlus, UserCheck, UserX, Users, Loader2, X, Clock, Inbox, ExternalLink, Trash2 } from "lucide-react";
 import { friendsApi, type UserSearchResult } from "@/api/friends";
 import { sharesApi } from "@/api/shares";
 import { contentTypeConfig } from "@/lib/constants";
@@ -280,6 +280,11 @@ function SharedInbox() {
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["shares-inbox"] }),
   });
 
+  const { mutate: deleteShare, variables: deletingId } = useMutation({
+    mutationFn: (id: string) => sharesApi.deleteShare(id),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["shares-inbox"] }),
+  });
+
   if (isLoading || !data || data.length === 0) return null;
 
   const unread = data.filter((s) => !s.isRead).length;
@@ -326,6 +331,14 @@ function SharedInbox() {
                 <span className="shrink-0 w-2 h-2 rounded-full bg-secondary mt-1.5" />
               )}
               <ExternalLink size={13} className="shrink-0 text-muted-foreground mt-0.5" />
+              <button
+                onClick={(e) => { e.stopPropagation(); deleteShare(share.id); }}
+                disabled={deletingId === share.id}
+                className="shrink-0 p-1 rounded hover:bg-destructive/10 text-muted-foreground hover:text-destructive transition-default disabled:opacity-40"
+                title="Remove from inbox"
+              >
+                {deletingId === share.id ? <Loader2 size={12} className="animate-spin" /> : <Trash2 size={12} />}
+              </button>
             </div>
           );
         })}
