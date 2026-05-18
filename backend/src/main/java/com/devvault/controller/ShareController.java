@@ -45,6 +45,13 @@ public class ShareController {
         shareService.markRead(id, currentUserId(userDetails));
     }
 
+    @DeleteMapping("/{id}")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void delete(@PathVariable UUID id,
+                       @AuthenticationPrincipal UserDetails userDetails) {
+        shareService.delete(id, currentUserId(userDetails));
+    }
+
     private UUID currentUserId(UserDetails userDetails) {
         return UUID.fromString(userDetails.getUsername());
     }
