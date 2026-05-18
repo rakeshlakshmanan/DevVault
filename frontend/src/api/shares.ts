@@ -20,4 +20,6 @@ export const sharesApi = {
   getUnreadCount: () => api.get<{ count: number }>('/shares/unread-count'),
 
   markRead: (id: string) => api.patch<void>(`/shares/${id}/read`, {}),
+
+  deleteShare: (id: string) => api.delete<void>(`/shares/${id}`),
 };
