@@ -78,6 +78,16 @@ public class ShareService {
         return sharedBookmarkRepository.countByReceiverIdAndIsReadFalse(userId);
     }
 
+    @Transactional
+    public void delete(UUID shareId, UUID userId) {
+        SharedBookmark share = sharedBookmarkRepository.findById(shareId)
+                .orElseThrow(() -> new ResourceNotFoundException("Share", shareId));
+        if (!share.getReceiver().getId().equals(userId)) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Not your share");
+        }
+        sharedBookmarkRepository.delete(share);
+    }
+
     private SharedBookmarkResponse toResponse(SharedBookmark s) {
         var tags = bookmarkTagRepository.findByBookmarkId(s.getBookmark().getId());
         return SharedBookmarkResponse.builder()
