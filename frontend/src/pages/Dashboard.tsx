@@ -6,6 +6,7 @@ import TagPill from "@/components/TagPill";
 import CollectionCard from "@/components/CollectionCard";
 import { bookmarksApi } from "@/api/bookmarks";
 import { collectionsApi } from "@/api/collections";
+import { favoritesApi } from "@/api/favorites";
 import type { Bookmark as BookmarkType, TagColor } from "@/data/types";
 import { useAuth } from "@/context/AuthContext";
 
@@ -48,6 +49,12 @@ const Dashboard = () => {
     queryFn: () => collectionsApi.list(0, 20),
   });
 
+  const { data: favoriteIds } = useQuery({
+    queryKey: ["favorites", "ids"],
+    queryFn: () => favoritesApi.listIds(),
+  });
+  const favoriteSet = new Set(favoriteIds ?? []);
+
   const bookmarks: BookmarkType[] = (bookmarksPage?.content ?? []).map((b) => ({
     id: b.id,
     title: b.title || b.url,
@@ -57,7 +64,7 @@ const Dashboard = () => {
     contentType: (b.contentType?.toLowerCase() as BookmarkType["contentType"]) || "blog",
     tags: (b.tags ?? []).map((t) => ({ name: t.name, color: colorForTag(t.name) })),
     timestamp: b.createdAt ? timeAgo(b.createdAt) : "",
-    isFavorite: false,
+    isFavorite: favoriteSet.has(b.id),
     isProcessing: b.aiStatus === "PENDING" || b.aiStatus === "PROCESSING",
   }));
 
