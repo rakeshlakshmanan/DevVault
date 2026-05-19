@@ -197,6 +197,15 @@ public class BookmarkService {
         }));
     }
 
+    @Transactional(readOnly = true)
+    public PageResponse<BookmarkResponse> explorePublic(UUID userId, Pageable pageable) {
+        Page<Bookmark> page = bookmarkRepository.findPublicExcludingUser(userId, pageable);
+        return PageResponse.from(page.map(b -> {
+            var tags = bookmarkTagRepository.findByBookmarkId(b.getId());
+            return bookmarkMapper.toResponse(b, tags);
+        }));
+    }
+
     /**
      * Retrieves a bookmark and verifies that it belongs to the given user.
      *
