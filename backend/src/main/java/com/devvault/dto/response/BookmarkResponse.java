@@ -21,6 +21,7 @@ public class BookmarkResponse {
     private AiStatus aiStatus;
     private String aiSummary;
     private boolean isPublic;
+    private String authorUsername;
     private List<TagResponse> tags;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
