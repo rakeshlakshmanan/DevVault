@@ -29,13 +29,6 @@ const queryClient = new QueryClient({
   },
 });
 
-const ComingSoon = ({ title }: { title: string }) => (
-  <div className="p-6">
-    <h1 className="text-2xl font-bold text-foreground">{title}</h1>
-    <p className="text-sm text-muted-foreground mt-2">Coming soon.</p>
-  </div>
-);
-
 const AppLayout = () => {
   const [modalOpen, setModalOpen] = useState(false);
   const { isAuthenticated } = useAuth();
