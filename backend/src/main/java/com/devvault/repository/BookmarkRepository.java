@@ -37,4 +37,8 @@ public interface BookmarkRepository extends JpaRepository<Bookmark, UUID> {
 
     // Bookmarks pending AI processing
     Page<Bookmark> findByAiStatus(AiStatus status, Pageable pageable);
+
+    @Query(value = "SELECT b FROM Bookmark b JOIN FETCH b.user WHERE b.isPublic = true AND b.user.id != :userId",
+           countQuery = "SELECT count(b) FROM Bookmark b WHERE b.isPublic = true AND b.user.id != :userId")
+    Page<Bookmark> findPublicExcludingUser(@Param("userId") UUID userId, Pageable pageable);
 }
