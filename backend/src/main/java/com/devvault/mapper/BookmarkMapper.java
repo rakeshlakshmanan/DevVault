@@ -15,6 +15,7 @@ public interface BookmarkMapper {
 
     @Mapping(target = "tags", ignore = true)
     @Mapping(target = "isPublic", source = "public")
+    @Mapping(target = "authorUsername", source = "user.username")
     BookmarkResponse toResponse(Bookmark bookmark);
 
     default BookmarkResponse toResponse(Bookmark bookmark, List<BookmarkTag> bookmarkTags) {
