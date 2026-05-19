@@ -81,6 +81,15 @@ public class BookmarkController {
         return bookmarkService.search(currentUserId(userDetails), q, pageable);
     }
 
+    @GetMapping("/explore")
+    public PageResponse<BookmarkResponse> explore(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size,
+            @AuthenticationPrincipal UserDetails userDetails) {
+        PageRequest pageable = PageRequest.of(page, size, Sort.by("createdAt").descending());
+        return bookmarkService.explorePublic(currentUserId(userDetails), pageable);
+    }
+
     private UUID currentUserId(UserDetails userDetails) {
         return UUID.fromString(userDetails.getUsername());
     }
