@@ -16,6 +16,7 @@ export interface BookmarkResponse {
   aiStatus: string;
   aiSummary: string;
   isPublic: boolean;
+  authorUsername?: string;
   tags: TagResponse[];
   createdAt: string;
   updatedAt: string;
@@ -59,5 +60,10 @@ export const bookmarksApi = {
   search: (q: string, page = 0, size = 20) => {
     const params = new URLSearchParams({ q, page: String(page), size: String(size) });
     return api.get<PageResponse<BookmarkResponse>>(`/bookmarks/search?${params}`);
+  },
+
+  explore: (page = 0, size = 20) => {
+    const params = new URLSearchParams({ page: String(page), size: String(size) });
+    return api.get<PageResponse<BookmarkResponse>>(`/bookmarks/explore?${params}`);
   },
 };
