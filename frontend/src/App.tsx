@@ -16,6 +16,7 @@ import OAuth2Callback from "@/pages/OAuth2Callback";
 import BookmarkDetail from "@/pages/BookmarkDetail";
 import Friends from "@/pages/Friends";
 import Favorites from "@/pages/Favorites";
+import Explore from "@/pages/Explore";
 import NotFound from "./pages/NotFound";
 import { AuthProvider, useAuth } from "@/context/AuthContext";
 
@@ -54,7 +55,7 @@ const AppLayout = () => {
             <Route path="/collections" element={<Collections />} />
             <Route path="/tags" element={<Tags />} />
             <Route path="/favorites" element={<Favorites />} />
-            <Route path="/explore" element={<ComingSoon title="Explore" />} />
+            <Route path="/explore" element={<Explore />} />
             <Route path="/friends" element={<Friends />} />
             <Route path="/profile" element={<Profile />} />
             <Route path="*" element={<NotFound />} />
