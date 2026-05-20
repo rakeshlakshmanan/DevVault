@@ -206,6 +206,20 @@ public class BookmarkService {
         }));
     }
 
+    @Transactional(readOnly = true)
+    public PageResponse<BookmarkResponse> listPublicBookmarks(String username, Pageable pageable) {
+        var user = userRepository.findByUsername(username)
+                .orElseThrow(() -> new ResourceNotFoundException("User not found: " + username));
+        if (!user.isPublicProfile()) {
+            throw new ResourceNotFoundException("User not found: " + username);
+        }
+        Page<Bookmark> page = bookmarkRepository.findByUserIdAndIsPublicTrue(user.getId(), pageable);
+        return PageResponse.from(page.map(b -> {
+            var tags = bookmarkTagRepository.findByBookmarkId(b.getId());
+            return bookmarkMapper.toResponse(b, tags);
+        }));
+    }
+
     /**
      * Retrieves a bookmark and verifies that it belongs to the given user.
      *
