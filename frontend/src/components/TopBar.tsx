@@ -1,7 +1,9 @@
 import { useState, useEffect, useRef } from "react";
 import { Search, Bell, Plus } from "lucide-react";
 import { useNavigate, useLocation } from "react-router-dom";
+import { useQuery } from "@tanstack/react-query";
 import { useAuth } from "@/context/AuthContext";
+import { sharesApi } from "@/api/shares";
 
 interface TopBarProps {
   title: string;
@@ -16,6 +18,13 @@ const TopBar = ({ title, onAddBookmark }: TopBarProps) => {
   const location = useLocation();
   const inputRef = useRef<HTMLInputElement>(null);
   const initials = user?.username ? user.username.slice(0, 2).toUpperCase() : "?";
+
+  const { data: unreadData } = useQuery({
+    queryKey: ["shares-unread-count"],
+    queryFn: () => sharesApi.getUnreadCount(),
+    refetchInterval: 60_000,
+  });
+  const unreadCount = unreadData?.count ?? 0;
 
   // Sync TopBar input with the ?q= URL param when on /bookmarks
   useEffect(() => {
@@ -79,9 +88,17 @@ const TopBar = ({ title, onAddBookmark }: TopBarProps) => {
       </div>
 
       <div className="flex items-center gap-2 shrink-0">
-        <button className="relative p-2 rounded-lg hover:bg-muted transition-default">
+        <button
+          onClick={() => navigate("/friends")}
+          className="relative p-2 rounded-lg hover:bg-muted transition-default"
+          title={unreadCount > 0 ? `${unreadCount} unread` : "Notifications"}
+        >
           <Bell size={18} className="text-muted-foreground" />
-          <span className="absolute top-1 right-1 w-2 h-2 rounded-full bg-primary" />
+          {unreadCount > 0 && (
+            <span className="absolute -top-0.5 -right-0.5 min-w-[16px] h-4 px-1 rounded-full bg-primary text-primary-foreground text-[9px] font-bold flex items-center justify-center">
+              {unreadCount > 9 ? "9+" : unreadCount}
+            </span>
+          )}
         </button>
         <button
           onClick={onAddBookmark}
