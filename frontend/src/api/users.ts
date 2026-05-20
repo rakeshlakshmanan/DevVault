@@ -1,4 +1,5 @@
 import { api } from '@/lib/api';
+import type { BookmarkResponse, PageResponse } from './bookmarks';
 
 export interface UserProfileResponse {
   id: string;
@@ -27,6 +28,11 @@ export interface UserUpdateRequest {
 export const usersApi = {
   getPublicProfile: (username: string) =>
     api.get<UserProfileResponse>(`/u/${username}`),
+
+  getPublicBookmarks: (username: string, page = 0, size = 20) => {
+    const params = new URLSearchParams({ page: String(page), size: String(size) });
+    return api.get<PageResponse<BookmarkResponse>>(`/u/${username}/bookmarks?${params}`);
+  },
 
   getMe: () => api.get<UserMeResponse>('/profile'),
 
