@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
 import { Compass, ExternalLink, Loader2, User } from "lucide-react";
 import { bookmarksApi, type BookmarkResponse } from "@/api/bookmarks";
 import { contentTypeConfig } from "@/lib/constants";
@@ -50,10 +50,14 @@ function ExploreCard({ bookmark }: { bookmark: BookmarkResponse }) {
             {domain}
           </span>
 
-          <span className="flex items-center gap-1 text-xs text-primary/80 font-medium">
+          <Link
+            to={`/u/${bookmark.authorUsername}`}
+            onClick={(e) => e.stopPropagation()}
+            className="flex items-center gap-1 text-xs text-primary/80 font-medium hover:text-primary transition-colors"
+          >
             <User size={11} />
             {bookmark.authorUsername}
-          </span>
+          </Link>
 
           {bookmark.tags.length > 0 && (
             <div className="flex gap-1 flex-wrap">
