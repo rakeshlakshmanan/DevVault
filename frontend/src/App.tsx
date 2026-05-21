@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate, useLocation } from "react-router-dom";
 import { Toaster } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
@@ -30,9 +30,29 @@ const queryClient = new QueryClient({
   },
 });
 
+const ROUTE_TITLES: Record<string, string> = {
+  "/": "Dashboard",
+  "/bookmarks": "Bookmarks",
+  "/collections": "Collections",
+  "/tags": "Tags",
+  "/favorites": "Favorites",
+  "/explore": "Explore",
+  "/friends": "Friends",
+  "/profile": "Profile",
+};
+
+function usePageTitle(): string {
+  const { pathname } = useLocation();
+  if (ROUTE_TITLES[pathname]) return ROUTE_TITLES[pathname];
+  if (pathname.startsWith("/bookmarks/")) return "Bookmark";
+  if (pathname.startsWith("/u/")) return pathname.slice(3);
+  return "DevVault";
+}
+
 const AppLayout = () => {
   const [modalOpen, setModalOpen] = useState(false);
   const { isAuthenticated } = useAuth();
+  const title = usePageTitle();
 
   if (!isAuthenticated) return <Navigate to="/login" replace />;
 
@@ -40,7 +60,7 @@ const AppLayout = () => {
     <div className="flex min-h-screen w-full bg-background">
       <AppSidebar />
       <div className="flex-1 flex flex-col min-w-0">
-        <TopBar title="Dashboard" onAddBookmark={() => setModalOpen(true)} />
+        <TopBar title={title} onAddBookmark={() => setModalOpen(true)} />
         <main className="flex-1 overflow-auto">
           <Routes>
             <Route path="/" element={<Dashboard />} />
@@ -71,6 +91,7 @@ const App = () => (
           <Routes>
             <Route path="/login" element={<Login />} />
             <Route path="/oauth2/callback" element={<OAuth2Callback />} />
+            <Route path="/u/:username" element={<UserProfile />} />
             <Route path="/*" element={<AppLayout />} />
           </Routes>
         </AuthProvider>
