@@ -211,6 +211,7 @@ function SentRequests() {
 }
 
 function FriendsList() {
+  const navigate = useNavigate();
   const queryClient = useQueryClient();
 
   const { data, isLoading } = useQuery({
@@ -245,9 +246,16 @@ function FriendsList() {
         <div className="space-y-2">
           {data.map((f) => (
             <div key={f.id} className="group flex items-center gap-3 p-2.5 rounded-lg hover:bg-muted/50 transition-default">
-              <UserAvatar username={f.otherUsername} avatarUrl={f.otherAvatarUrl} />
+              <button onClick={() => navigate(`/u/${f.otherUsername}`)} className="shrink-0">
+                <UserAvatar username={f.otherUsername} avatarUrl={f.otherAvatarUrl} />
+              </button>
               <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium text-foreground">{f.otherUsername}</p>
+                <button
+                  onClick={() => navigate(`/u/${f.otherUsername}`)}
+                  className="text-sm font-medium text-foreground hover:text-primary transition-colors"
+                >
+                  {f.otherUsername}
+                </button>
               </div>
               <button
                 onClick={() => remove(f.otherUserId)}
@@ -324,7 +332,13 @@ function SharedInbox() {
                   {share.bookmark.title || share.bookmark.url}
                 </p>
                 <p className="text-xs text-muted-foreground mt-0.5">
-                  from <span className="text-foreground font-medium">{share.senderUsername}</span>
+                  from{" "}
+                  <button
+                    onClick={(e) => { e.stopPropagation(); navigate(`/u/${share.senderUsername}`); }}
+                    className="text-foreground font-medium hover:text-primary transition-colors"
+                  >
+                    {share.senderUsername}
+                  </button>
                 </p>
               </div>
               {!share.isRead && (
