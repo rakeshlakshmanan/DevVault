@@ -278,7 +278,7 @@ export default function BookmarkDetail() {
           <h2 className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
             Summary
           </h2>
-          <p className="text-sm text-foreground leading-relaxed">
+          <p className="text-sm text-foreground leading-relaxed whitespace-pre-line">
             {bookmark.aiSummary || bookmark.description}
           </p>
         </div>
