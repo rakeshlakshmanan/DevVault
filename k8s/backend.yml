@@ -58,6 +58,10 @@ spec:
                   key: GOOGLE_CLIENT_SECRET
             - name: SPRING_DATASOURCE_URL
               value: jdbc:postgresql://postgres-service:5432/devvault
+            - name: FRONTEND_URL
+              value: https://devvault.qd.je
+            - name: APP_CORS_ALLOWED_ORIGINS
+              value: https://devvault.qd.je
           readinessProbe:
             tcpSocket:
               port: 8080
