@@ -43,6 +43,9 @@ server:
   port: 8080
   servlet:
     context-path: /
+  # Honor X-Forwarded-* headers from the GKE load balancer / nginx so OAuth2
+  # redirect URIs are built as https://devvault.qd.je rather than http://backend
+  forward-headers-strategy: framework
 
 app:
   jwt:
