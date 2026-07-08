@@ -71,7 +71,9 @@ jobs:
             --dry-run=client -o yaml | kubectl apply -f -
 
           kubectl apply -f k8s/postgres.yml
-          kubectl rollout status deployment/postgres -n devvault --timeout=120s
+          # Autopilot may need to provision a node for the first pod, which can
+          # exceed 2 minutes on a cold cluster — give the rollout room.
+          kubectl rollout status deployment/postgres -n devvault --timeout=600s
 
           kubectl apply -f k8s/backend.yml
           kubectl apply -f k8s/frontend.yml
@@ -79,4 +81,4 @@ jobs:
           kubectl set image deployment/backend backend=${{ env.REGISTRY }}/backend:${{ github.sha }} -n devvault
           kubectl set image deployment/frontend frontend=${{ env.REGISTRY }}/frontend:${{ github.sha }} -n devvault
           kubectl rollout status deployment/backend -n devvault --timeout=300s
-          kubectl rollout status deployment/frontend -n devvault --timeout=120s
+          kubectl rollout status deployment/frontend -n devvault --timeout=300s
