@@ -75,6 +75,7 @@ jobs:
 
           kubectl apply -f k8s/backend.yml
           kubectl apply -f k8s/frontend.yml
+          kubectl apply -f k8s/ingress.yml
           kubectl set image deployment/backend backend=${{ env.REGISTRY }}/backend:${{ github.sha }} -n devvault
           kubectl set image deployment/frontend frontend=${{ env.REGISTRY }}/frontend:${{ github.sha }} -n devvault
           kubectl rollout status deployment/backend -n devvault --timeout=300s
