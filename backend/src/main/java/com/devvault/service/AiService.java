@@ -1,6 +1,8 @@
 package com.devvault.service;
 
 import com.devvault.config.GeminiConfig;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.devvault.entity.Bookmark;
 import com.devvault.enums.AiStatus;
 import com.devvault.enums.TagSource;
@@ -34,6 +36,8 @@ import java.util.stream.Stream;
 @Service
 @Slf4j
 public class AiService {
+
+    private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
 
     private final WebClient geminiWebClient;
     private final GeminiConfig geminiConfig;
@@ -202,11 +206,15 @@ public class AiService {
         if (hasContent) {
             return """
                     Analyze the following web content and provide:
-                    1. A detailed summary as a single well-written paragraph (5-7 sentences) that covers the main topic, key points, and any notable details or takeaways from the content
+                    1. A detailed summary of at least two well-developed paragraphs (each 4-6 sentences). The first paragraph should introduce the main topic and the core argument or purpose; the second paragraph should cover the key points, notable details, and takeaways. Separate the two paragraphs with a single blank line.
                     2. 3-5 relevant tags (single words or short phrases)
 
                     Respond in exactly this format:
-                    SUMMARY: <your summary here>
+                    SUMMARY:
+                    <first paragraph>
+
+                    <second paragraph>
+
                     TAGS: <tag1>, <tag2>, <tag3>
 
                     Title: %s
@@ -215,11 +223,15 @@ public class AiService {
         } else {
             return """
                     Based only on the page title below, infer what this bookmark is likely about and provide:
-                    1. A detailed summary as a single well-written paragraph (5-7 sentences) that covers the likely main topic, key points, and any notable details or takeaways
+                    1. A detailed summary of at least two well-developed paragraphs (each 4-6 sentences). The first paragraph should introduce the likely main topic and purpose; the second paragraph should cover the likely key points, notable details, and takeaways. Separate the two paragraphs with a single blank line.
                     2. 3-5 relevant tags (single words or short phrases)
 
                     Respond in exactly this format:
-                    SUMMARY: <your summary here>
+                    SUMMARY:
+                    <first paragraph>
+
+                    <second paragraph>
+
                     TAGS: <tag1>, <tag2>, <tag3>
 
                     Title: %s
@@ -238,29 +250,46 @@ public class AiService {
      * @return the parsed {@link AiResult}, or an empty result if parsing fails
      */
     private AiResult parseGeminiResponse(String rawResponse) {
-        // Basic parsing — extract text from Gemini JSON response
-        // In production, use a proper JSON parser
         try {
-            int textStart = rawResponse.indexOf("\"text\": \"") + 9;
-            int textEnd = rawResponse.indexOf("\"", textStart);
-            String text = rawResponse.substring(textStart, textEnd)
-                    .replace("\\n", "\n");
+            // Parse the JSON properly so escaped characters (quotes, newlines) inside
+            // the generated text are decoded correctly rather than truncating the summary.
+            JsonNode textNode = OBJECT_MAPPER.readTree(rawResponse)
+                    .path("candidates").path(0)
+                    .path("content").path("parts").path(0)
+                    .path("text");
 
+            if (textNode.isMissingNode() || textNode.isNull()) {
+                log.warn("[AI] No text node found in Gemini response: {}", rawResponse);
+                return new AiResult("", List.of());
+            }
+
+            String text = textNode.asText();
             log.debug("[AI] Extracted text block: {}", text);
 
             String summary = "";
             List<String> tags = List.of();
 
-            for (String line : text.split("\n")) {
-                if (line.startsWith("SUMMARY:")) {
-                    summary = line.substring("SUMMARY:".length()).trim();
-                } else if (line.startsWith("TAGS:")) {
-                    String tagLine = line.substring("TAGS:".length()).trim();
-                    tags = List.of(tagLine.split(",")).stream()
-                            .map(String::trim)
-                            .filter(t -> !t.isBlank())
-                            .toList();
+            int summaryIdx = text.indexOf("SUMMARY:");
+            int tagsIdx = text.indexOf("TAGS:");
+
+            // Capture everything between the SUMMARY: and TAGS: markers so multi-paragraph
+            // summaries (which contain newlines) are preserved in full.
+            if (summaryIdx >= 0) {
+                int start = summaryIdx + "SUMMARY:".length();
+                int end = (tagsIdx > summaryIdx) ? tagsIdx : text.length();
+                summary = text.substring(start, end).trim();
+            }
+
+            if (tagsIdx >= 0) {
+                String tagLine = text.substring(tagsIdx + "TAGS:".length());
+                int nl = tagLine.indexOf('\n');
+                if (nl >= 0) {
+                    tagLine = tagLine.substring(0, nl);
                 }
+                tags = Stream.of(tagLine.split(","))
+                        .map(String::trim)
+                        .filter(t -> !t.isBlank())
+                        .toList();
             }
 
             if (summary.isBlank() && tags.isEmpty()) {
