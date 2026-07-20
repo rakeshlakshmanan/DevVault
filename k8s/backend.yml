@@ -20,6 +20,10 @@ spec:
             - sh
             - -c
             - until pg_isready -h postgres-service -p 5432 -U postgres; do echo "Waiting for postgres..."; sleep 3; done; echo "Postgres ready, waiting 5s for full init..."; sleep 5
+          resources:
+            requests:
+              cpu: 250m
+              memory: 512Mi
       containers:
         - name: backend
           image: us-central1-docker.pkg.dev/devvault-b3fd84/devvault/backend:latest
@@ -62,6 +66,10 @@ spec:
               value: https://devvault.qd.je
             - name: APP_CORS_ALLOWED_ORIGINS
               value: https://devvault.qd.je
+          resources:
+            requests:
+              cpu: 500m
+              memory: 1Gi
           readinessProbe:
             tcpSocket:
               port: 8080
