@@ -24,6 +24,7 @@ public class ScraperService {
     private static final String JINA_BASE_URL = "https://r.jina.ai/";
     private static final int TIMEOUT_MS = 15_000;
     private static final int MAX_CONTENT_LENGTH = 8_000;
+    private static final String USER_AGENT = "DevVault/1.0";
 
     private final ObjectMapper objectMapper;
 
@@ -52,7 +53,10 @@ public class ScraperService {
             String jinaUrl = JINA_BASE_URL + url;
             log.debug("[Scraper] Fetching via Jina: {}", jinaUrl);
 
+            // Jsoup's default User-Agent (an outdated Chrome string) is rejected by Jina's
+            // Cloudflare front with HTTP 403, so identify ourselves explicitly.
             String json = Jsoup.connect(jinaUrl)
+                    .userAgent(USER_AGENT)
                     .header("Accept", "application/json")
                     .ignoreContentType(true)
                     .timeout(TIMEOUT_MS)

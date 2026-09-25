@@ -93,6 +93,15 @@ public class AiService {
             return;
         }
 
+        // With neither a title nor content, Gemini just riffs on the word "Unknown".
+        // Mark FAILED instead so reprocessUnfinished() retries it on the next startup.
+        if (bookmark.getTitle() == null && (scrapedContent == null || scrapedContent.isBlank())) {
+            log.warn("[AI] Bookmark {} has no title or scraped content, marking FAILED", bookmarkId);
+            bookmark.setAiStatus(AiStatus.FAILED);
+            bookmarkRepository.save(bookmark);
+            return;
+        }
+
         try {
             bookmark.setAiStatus(AiStatus.PROCESSING);
             bookmarkRepository.save(bookmark);
@@ -138,11 +147,17 @@ public class AiService {
                         continue;
                     }
                     log.info("[AI] Reprocessing bookmark {} (status={})", bookmark.getId(), status);
+                    ScraperService.ScrapedContent scraped = scraperService.scrape(bookmark.getUrl());
                     bookmark.setAiStatus(AiStatus.PENDING);
+                    if (bookmark.getTitle() == null) {
+                        bookmark.setTitle(scraped.title());
+                    }
+                    if (bookmark.getDescription() == null) {
+                        bookmark.setDescription(scraped.description());
+                    }
                     bookmarkRepository.save(bookmark);
 
-                    String scraped = scraperService.scrape(bookmark.getUrl()).bodyText();
-                    processBookmark(bookmark.getId(), scraped);
+                    processBookmark(bookmark.getId(), scraped.bodyText());
                     processed++;
                 }
                 page++;
