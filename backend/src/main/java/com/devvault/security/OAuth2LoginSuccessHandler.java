@@ -37,8 +37,10 @@ public class OAuth2LoginSuccessHandler implements AuthenticationSuccessHandler {
 
         AuthResponse auth = authService.findOrCreateGoogleUser(googleId, email, name, avatarUrl);
 
+        // Fragment (#), not query string: fragments are never sent to servers, so the
+        // tokens stay out of nginx / load balancer access logs and Referer headers.
         String url = frontendUrl + "/oauth2/callback"
-                + "?accessToken="  + encode(auth.getAccessToken())
+                + "#accessToken="  + encode(auth.getAccessToken())
                 + "&refreshToken=" + encode(auth.getRefreshToken())
                 + "&userId="       + auth.getUserId()
                 + "&username="     + encode(auth.getUsername())

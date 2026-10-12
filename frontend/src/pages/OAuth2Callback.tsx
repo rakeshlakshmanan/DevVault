@@ -8,7 +8,9 @@ export default function OAuth2Callback() {
   const navigate = useNavigate();
 
   useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
+    // Tokens arrive in the URL fragment (never sent to servers); strip it from history at once
+    const params = new URLSearchParams(window.location.hash.slice(1));
+    window.history.replaceState(null, '', window.location.pathname);
     const accessToken  = params.get('accessToken');
     const refreshToken = params.get('refreshToken');
     const userId       = params.get('userId');

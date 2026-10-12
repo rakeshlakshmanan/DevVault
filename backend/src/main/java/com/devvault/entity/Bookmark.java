@@ -46,6 +46,10 @@ public class Bookmark {
     @Builder.Default
     private AiStatus aiStatus = AiStatus.PENDING;
 
+    @Column(name = "ai_attempts", nullable = false)
+    @Builder.Default
+    private int aiAttempts = 0;
+
     @Column(name = "ai_summary", columnDefinition = "TEXT")
     private String aiSummary;
 

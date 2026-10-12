@@ -12,8 +12,6 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageRequest;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -38,6 +36,7 @@ import java.util.stream.Stream;
 public class AiService {
 
     private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
+    private static final int MAX_AI_ATTEMPTS = 3;
 
     private final WebClient geminiWebClient;
     private final GeminiConfig geminiConfig;
@@ -93,8 +92,10 @@ public class AiService {
             return;
         }
 
+        bookmark.setAiAttempts(bookmark.getAiAttempts() + 1);
+
         // With neither a title nor content, Gemini just riffs on the word "Unknown".
-        // Mark FAILED instead so reprocessUnfinished() retries it on the next startup.
+        // Mark FAILED instead so reprocessUnfinished() retries it on a later startup.
         if (bookmark.getTitle() == null && (scrapedContent == null || scrapedContent.isBlank())) {
             log.warn("[AI] Bookmark {} has no title or scraped content, marking FAILED", bookmarkId);
             bookmark.setAiStatus(AiStatus.FAILED);
@@ -129,45 +130,40 @@ public class AiService {
      * {@code PROCESSING}, or {@code FAILED}) and re-scrapes + reprocesses each one.
      *
      * <p>Intended to be called on application startup to recover bookmarks that missed
-     * AI processing (e.g. server was down, API key was missing, or the call failed).</p>
+     * AI processing (e.g. server was down, API key was missing, or the call failed).
+     * Bookmarks that have already been attempted {@value MAX_AI_ATTEMPTS} times are skipped
+     * so a permanently failing URL isn't retried on every restart.</p>
      */
     public void reprocessUnfinished() {
-        List<AiStatus> incomplete = List.of(AiStatus.PENDING, AiStatus.PROCESSING, AiStatus.FAILED);
-        java.util.Set<UUID> queued = new java.util.HashSet<>();
-        int processed = 0;
+        // Snapshot IDs up front: processing changes ai_status, which would shift
+        // pages under a status-filtered paginated query and skip rows.
+        List<UUID> ids = bookmarkRepository.findIdsForAiReprocessing(
+                List.of(AiStatus.PENDING, AiStatus.PROCESSING, AiStatus.FAILED), MAX_AI_ATTEMPTS);
 
-        for (AiStatus status : incomplete) {
-            int page = 0;
-            Page<Bookmark> batch;
-            do {
-                batch = bookmarkRepository.findByAiStatus(status, PageRequest.of(page, 50));
-                for (Bookmark bookmark : batch.getContent()) {
-                    if (!queued.add(bookmark.getId())) {
-                        log.debug("[AI] Skipping already-queued bookmark {} (status={})", bookmark.getId(), status);
-                        continue;
-                    }
-                    log.info("[AI] Reprocessing bookmark {} (status={})", bookmark.getId(), status);
-                    ScraperService.ScrapedContent scraped = scraperService.scrape(bookmark.getUrl());
-                    bookmark.setAiStatus(AiStatus.PENDING);
-                    if (bookmark.getTitle() == null) {
-                        bookmark.setTitle(scraped.title());
-                    }
-                    if (bookmark.getDescription() == null) {
-                        bookmark.setDescription(scraped.description());
-                    }
-                    bookmarkRepository.save(bookmark);
-
-                    processBookmark(bookmark.getId(), scraped.bodyText());
-                    processed++;
-                }
-                page++;
-            } while (batch.hasNext());
-        }
-
-        if (processed == 0) {
+        if (ids.isEmpty()) {
             log.info("[AI] No unfinished bookmarks found — nothing to reprocess");
-        } else {
-            log.info("[AI] Queued {} bookmark(s) for reprocessing", processed);
+            return;
+        }
+        log.info("[AI] Reprocessing {} unfinished bookmark(s)", ids.size());
+
+        for (UUID id : ids) {
+            Bookmark bookmark = bookmarkRepository.findById(id).orElse(null);
+            if (bookmark == null) {
+                continue;
+            }
+            log.info("[AI] Reprocessing bookmark {} (status={}, attempts={})",
+                    id, bookmark.getAiStatus(), bookmark.getAiAttempts());
+            ScraperService.ScrapedContent scraped = scraperService.scrape(bookmark.getUrl());
+            bookmark.setAiStatus(AiStatus.PENDING);
+            if (bookmark.getTitle() == null) {
+                bookmark.setTitle(scraped.title());
+            }
+            if (bookmark.getDescription() == null) {
+                bookmark.setDescription(scraped.description());
+            }
+            bookmarkRepository.save(bookmark);
+
+            processBookmark(id, scraped.bodyText());
         }
     }
 
@@ -192,8 +188,9 @@ public class AiService {
         String response = geminiWebClient.post()
                 .uri(uriBuilder -> uriBuilder
                         .path("/models/{model}:generateContent")
-                        .queryParam("key", geminiConfig.getApiKey())
                         .build(geminiModel))
+                // Header rather than ?key= so the key never appears in logged request URLs
+                .header("x-goog-api-key", geminiConfig.getApiKey())
                 .bodyValue(requestBody)
                 .retrieve()
                 .onStatus(status -> !status.is2xxSuccessful(), clientResponse ->

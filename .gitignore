@@ -36,3 +36,10 @@ logs/
 
 # Local context notes
 *_CONTEXT.md
+
+# Node
+node_modules/
+dist/
+
+# GCP billing exports
+billing*.csv

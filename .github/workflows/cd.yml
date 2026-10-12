@@ -17,6 +17,18 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Check required secrets
+        env:
+          DB_USERNAME: ${{ secrets.DB_USERNAME }}
+          DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
+          JWT_SECRET: ${{ secrets.JWT_SECRET }}
+        run: |
+          missing=0
+          for name in DB_USERNAME DB_PASSWORD JWT_SECRET; do
+            if [ -z "${!name}" ]; then echo "::error::Missing GitHub secret $name"; missing=1; fi
+          done
+          exit $missing
+
       - name: Authenticate to GCP
         uses: google-github-actions/auth@v2
         with:
@@ -62,8 +74,8 @@ jobs:
 
           kubectl create secret generic devvault-secrets \
             --namespace=devvault \
-            --from-literal=DB_USERNAME=postgres \
-            --from-literal=DB_PASSWORD=postgres \
+            --from-literal=DB_USERNAME="${{ secrets.DB_USERNAME }}" \
+            --from-literal=DB_PASSWORD="${{ secrets.DB_PASSWORD }}" \
             --from-literal=JWT_SECRET="${{ secrets.JWT_SECRET }}" \
             --from-literal=GEMINI_API_KEY="${{ secrets.GEMINI_API_KEY }}" \
             --from-literal=GOOGLE_CLIENT_ID="${{ secrets.GOOGLE_CLIENT_ID }}" \

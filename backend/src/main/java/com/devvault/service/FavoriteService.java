@@ -59,9 +59,9 @@ public class FavoriteService {
     @Transactional(readOnly = true)
     public PageResponse<BookmarkResponse> listForUser(UUID userId, Pageable pageable) {
         Page<Favorite> page = favoriteRepository.findByUserId(userId, pageable);
-        return PageResponse.from(page.map(fav -> {
-            var tags = bookmarkTagRepository.findByBookmarkId(fav.getBookmark().getId());
-            return bookmarkMapper.toResponse(fav.getBookmark(), tags);
-        }));
+        var tagsById = bookmarkTagRepository.findGroupedByBookmarkIds(
+                page.map(fav -> fav.getBookmark().getId()).getContent());
+        return PageResponse.from(page.map(fav -> bookmarkMapper.toResponse(
+                fav.getBookmark(), tagsById.getOrDefault(fav.getBookmark().getId(), List.of()))));
     }
 }

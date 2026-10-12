@@ -85,7 +85,7 @@ public class CollectionService {
      * @param bookmarkId   the ID of the bookmark to add
      * @param userId       the ID of the requesting user; must be the collection owner
      * @throws ResourceNotFoundException if the collection or bookmark does not exist,
-     *                                   or the collection is not owned by the user
+     *                                   or either is not owned by the user
      */
     @Transactional
     public void addBookmark(UUID collectionId, UUID bookmarkId, UUID userId) {
@@ -95,7 +95,10 @@ public class CollectionService {
             return; // idempotent
         }
 
+        // Only the caller's own bookmarks may be added — otherwise a private bookmark
+        // belonging to someone else could be exposed through a public collection.
         Bookmark bookmark = bookmarkRepository.findById(bookmarkId)
+                .filter(b -> b.getUser().getId().equals(userId))
                 .orElseThrow(() -> new ResourceNotFoundException("Bookmark", bookmarkId));
 
         collectionBookmarkRepository.save(CollectionBookmark.builder()
@@ -141,10 +144,10 @@ public class CollectionService {
         }
 
         Page<CollectionBookmark> page = collectionBookmarkRepository.findByCollectionId(collectionId, pageable);
-        return PageResponse.from(page.map(cb -> {
-            var tags = bookmarkTagRepository.findByBookmarkId(cb.getBookmark().getId());
-            return bookmarkMapper.toResponse(cb.getBookmark(), tags);
-        }));
+        var tagsById = bookmarkTagRepository.findGroupedByBookmarkIds(
+                page.map(cb -> cb.getBookmark().getId()).getContent());
+        return PageResponse.from(page.map(cb -> bookmarkMapper.toResponse(
+                cb.getBookmark(), tagsById.getOrDefault(cb.getBookmark().getId(), List.of()))));
     }
 
     /**

@@ -23,6 +23,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 
+import java.util.List;
 import java.util.UUID;
 
 /**
@@ -108,10 +109,7 @@ public class BookmarkService {
                 ? bookmarkRepository.findByUserIdAndContentType(userId, contentType, pageable)
                 : bookmarkRepository.findByUserId(userId, pageable);
 
-        return PageResponse.from(page.map(b -> {
-            var tags = bookmarkTagRepository.findByBookmarkId(b.getId());
-            return bookmarkMapper.toResponse(b, tags);
-        }));
+        return toResponsePage(page);
     }
 
     /**
@@ -191,19 +189,13 @@ public class BookmarkService {
     @Transactional(readOnly = true)
     public PageResponse<BookmarkResponse> search(UUID userId, String query, Pageable pageable) {
         Page<Bookmark> page = bookmarkRepository.fullTextSearch(userId, query, pageable);
-        return PageResponse.from(page.map(b -> {
-            var tags = bookmarkTagRepository.findByBookmarkId(b.getId());
-            return bookmarkMapper.toResponse(b, tags);
-        }));
+        return toResponsePage(page);
     }
 
     @Transactional(readOnly = true)
     public PageResponse<BookmarkResponse> explorePublic(UUID userId, Pageable pageable) {
         Page<Bookmark> page = bookmarkRepository.findPublicExcludingUser(userId, pageable);
-        return PageResponse.from(page.map(b -> {
-            var tags = bookmarkTagRepository.findByBookmarkId(b.getId());
-            return bookmarkMapper.toResponse(b, tags);
-        }));
+        return toResponsePage(page);
     }
 
     @Transactional(readOnly = true)
@@ -214,10 +206,14 @@ public class BookmarkService {
             throw new ResourceNotFoundException("User not found: " + username);
         }
         Page<Bookmark> page = bookmarkRepository.findByUserIdAndIsPublicTrue(user.getId(), pageable);
-        return PageResponse.from(page.map(b -> {
-            var tags = bookmarkTagRepository.findByBookmarkId(b.getId());
-            return bookmarkMapper.toResponse(b, tags);
-        }));
+        return toResponsePage(page);
+    }
+
+    /** Maps a page of bookmarks to DTOs, loading all of their tags in a single query. */
+    private PageResponse<BookmarkResponse> toResponsePage(Page<Bookmark> page) {
+        var tagsById = bookmarkTagRepository.findGroupedByBookmarkIds(page.map(Bookmark::getId).getContent());
+        return PageResponse.from(page.map(b ->
+                bookmarkMapper.toResponse(b, tagsById.getOrDefault(b.getId(), List.of()))));
     }
 
     /**

@@ -2,6 +2,7 @@ package com.devvault.service;
 
 import com.devvault.dto.response.SharedBookmarkResponse;
 import com.devvault.entity.Bookmark;
+import com.devvault.entity.BookmarkTag;
 import com.devvault.entity.SharedBookmark;
 import com.devvault.entity.User;
 import com.devvault.enums.FriendRequestStatus;
@@ -57,8 +58,11 @@ public class ShareService {
 
     @Transactional(readOnly = true)
     public List<SharedBookmarkResponse> getInbox(UUID userId) {
-        return sharedBookmarkRepository.findByReceiverIdOrderByCreatedAtDesc(userId).stream()
-                .map(this::toResponse)
+        var shares = sharedBookmarkRepository.findByReceiverIdOrderByCreatedAtDesc(userId);
+        var tagsById = bookmarkTagRepository.findGroupedByBookmarkIds(
+                shares.stream().map(s -> s.getBookmark().getId()).toList());
+        return shares.stream()
+                .map(s -> toResponse(s, tagsById.getOrDefault(s.getBookmark().getId(), List.of())))
                 .toList();
     }
 
@@ -89,7 +93,10 @@ public class ShareService {
     }
 
     private SharedBookmarkResponse toResponse(SharedBookmark s) {
-        var tags = bookmarkTagRepository.findByBookmarkId(s.getBookmark().getId());
+        return toResponse(s, bookmarkTagRepository.findByBookmarkId(s.getBookmark().getId()));
+    }
+
+    private SharedBookmarkResponse toResponse(SharedBookmark s, List<BookmarkTag> tags) {
         return SharedBookmarkResponse.builder()
                 .id(s.getId())
                 .senderUserId(s.getSender().getId())

@@ -9,6 +9,8 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
+import java.util.Collection;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -35,8 +37,10 @@ public interface BookmarkRepository extends JpaRepository<Bookmark, UUID> {
                                   @Param("query") String query,
                                   Pageable pageable);
 
-    // Bookmarks pending AI processing
-    Page<Bookmark> findByAiStatus(AiStatus status, Pageable pageable);
+    // Bookmarks still needing AI processing that haven't exhausted their retry budget
+    @Query("SELECT b.id FROM Bookmark b WHERE b.aiStatus IN :statuses AND b.aiAttempts < :maxAttempts")
+    List<UUID> findIdsForAiReprocessing(@Param("statuses") Collection<AiStatus> statuses,
+                                        @Param("maxAttempts") int maxAttempts);
 
     @Query(value = "SELECT b FROM Bookmark b JOIN FETCH b.user WHERE b.isPublic = true AND b.user.id != :userId",
            countQuery = "SELECT count(b) FROM Bookmark b WHERE b.isPublic = true AND b.user.id != :userId")
