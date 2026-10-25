@@ -141,60 +141,81 @@ Deploys are serialised by a `concurrency` group, so overlapping pushes queue.
 
 `DB_USERNAME` must be `postgres`, because the backend's init container waits on `pg_isready -U postgres`.
 
-## Production infrastructure
-
-| Item | Value |
-|---|---|
-| GCP project | `devvault-oct` |
-| Cluster | `devvault-cluster`, GKE Autopilot, `us-central1` |
-| Namespace | `devvault` |
-| Registry | `us-central1-docker.pkg.dev/devvault-oct/devvault` |
-| Deploy service account | `devvault-deployer` (roles: `artifactregistry.writer`, `container.developer`) |
-| Static IP | global address `devvault-ip`, used by the ingress |
-| Domain | `devvault.qd.je`, an A record pointing at the static IP |
-| TLS | GKE ManagedCertificate, issued after DNS resolves (can take up to an hour) |
-
-Services: `frontend-service` (NodePort 80), `backend-service` (ClusterIP 8080), `postgres-service` (ClusterIP 5432). Resource requests are set explicitly on every container, because Autopilot bills by request.
-
-Useful commands:
-
-```bash
-gcloud container clusters get-credentials devvault-cluster --location=us-central1 --project=devvault-oct
-kubectl get pods,deploy,svc,ingress -n devvault
-kubectl logs deploy/backend -n devvault
-```
-
-### One-time setup for a new project
-
-```bash
-gcloud services enable container.googleapis.com artifactregistry.googleapis.com compute.googleapis.com iam.googleapis.com
-gcloud artifacts repositories create devvault --repository-format=docker --location=us-central1
-gcloud compute addresses create devvault-ip --global
-gcloud container clusters create-auto devvault-cluster --location=us-central1
-gcloud container clusters update devvault-cluster --location=us-central1 --monitoring=SYSTEM
-gcloud iam service-accounts create devvault-deployer
-# grant roles/artifactregistry.writer and roles/container.developer to it,
-# create a JSON key, and store it as the GCP_SA_KEY GitHub secret
-```
-
-Then point the domain's DNS at the static IP and add the OAuth redirect URI `https://devvault.qd.je/login/oauth2/code/google` to the Google OAuth client.
-
-### Cost notes
-
-- The Autopilot cluster fee is a fixed floor of roughly 64 EUR per month, and the load balancer and pod requests add to it.
-- Monitoring is trimmed to `SYSTEM` to cut Prometheus sample costs.
-- The backend keeps 1Gi memory, because a Spring Boot JVM runs out of memory at Autopilot's 512Mi minimum.
-- Set a budget alert on the billing account, and note when any free credit period ends.
-
 ## Design decisions
 
-- **Event-driven AI processing** keeps Gemini latency out of the HTTP request path.
-- **Jina AI Reader** handles bot detection and JS-rendered pages (Medium, Substack) better than raw Jsoup.
-- **Multi-stage Docker builds** ship only the JRE and the compiled static files.
-- **Flyway** makes schema changes versioned and repeatable.
-- **Stateless JWT auth** lets the backend scale horizontally.
+Each entry says what was chosen, what it was chosen over, and why.
 
-## Known issues
+### Event-driven AI processing instead of calling Gemini inside the request
 
-- Postgres runs as a single pod with a PVC, with no backups or replication.
-- CD deploys on every push to `main` without waiting for CI.
+Saving a bookmark returns as soon as the page is scraped and the row is stored. A `BookmarkCreatedEvent` is published, and `AiService` handles it on a separate thread pool after the transaction commits.
+
+- **Why not call Gemini inline:** an LLM call takes several seconds and can time out or fail. Doing it in the request would make every save slow and tie the save's success to a third-party API.
+- **Why `@TransactionalEventListener`:** the listener only runs after the commit, so it can never read a bookmark that does not exist yet, and a rolled-back save never triggers an AI call.
+- **Why not a message queue (RabbitMQ, Kafka, Pub/Sub):** a queue adds a new service to run and pay for. Spring's in-process events are enough for one backend instance.
+- **Trade-off:** in-process events are lost if the pod dies mid-processing. This is covered by the `aiStatus` column and `AiStartupRunner`, which reprocesses unfinished bookmarks on boot. The `ai_attempts` counter stops permanently failing bookmarks from being retried forever.
+
+### Jina AI Reader for scraping instead of Jsoup alone
+
+- **Why:** many developer reading sites (Medium, Substack and similar) block plain HTTP clients or render content with JavaScript, so Jsoup gets an empty or blocked page. Jina returns clean, readable text, which also gives Gemini better input than raw HTML.
+- **Why not a headless browser (Playwright, Puppeteer):** it would mean shipping and scaling Chromium in the backend image, which is heavy on memory and CPU. That matters on a cluster billed by resource requests.
+- **Jsoup is still used** for lightweight parsing such as page metadata.
+- **Trade-off:** a dependency on an external service. If Jina is down, new bookmarks are saved without scraped content.
+
+### Gemini 2.5 Flash instead of a larger model
+
+- **Why:** the task is short summarisation plus tag extraction. It needs speed and low cost per call, not deep reasoning, and Flash fits that.
+- **Why not a self-hosted model:** it would need GPU or large-memory nodes, which cost far more than API calls at this scale.
+- **Trade-off:** vendor lock-in and an API key to manage. The model call is isolated in `AiService`, so swapping providers is a local change.
+
+### Stateless JWT instead of server-side sessions
+
+- **Why:** the backend keeps no session state, so any replica can serve any request and it scales horizontally without sticky sessions or a shared session store such as Redis.
+- **Why a short access token plus a refresh token:** a 15-minute access token limits the damage if one leaks, and the 7-day refresh token keeps users signed in.
+- **Why Google OAuth2 as well:** one-click sign-in for developers. The success handler issues the same JWT pair, so the rest of the app does not care how the user logged in.
+- **Trade-off:** a JWT cannot be revoked before it expires without extra machinery. The short lifetime is the mitigation.
+
+### PostgreSQL instead of MongoDB or another NoSQL store
+
+- **Why:** the data is relational: users, bookmarks, tags, collections, friendships and shares, joined many-to-many. Foreign keys, unique constraints and joins give integrity and simple queries for these.
+- **Why Postgres specifically:** it is free, runs everywhere (including as a container in the cluster), and has good full-text search if search needs to grow.
+- **Trade-off:** running it as a single pod in Kubernetes means no automatic backups or failover. A managed service (Cloud SQL) would add that at extra cost.
+
+### Flyway migrations with `ddl-auto: validate` instead of Hibernate auto-update
+
+- **Why:** schema changes are versioned SQL files that are reviewed, committed and applied in order on every environment, so local, CI and production end up with the same schema.
+- **Why `validate`:** Hibernate only checks that entities match the schema and refuses to start otherwise. This catches a missing migration at boot instead of at runtime. (For example, code that uses `ai_attempts` will not start without migration V11.)
+- **Why not `ddl-auto: update`:** it can silently alter or fail to alter tables, cannot express data fixes, and gives no history to roll forward from.
+
+### Spring Boot instead of Node.js or another backend stack
+
+- **Why:** Spring Security, Spring Data JPA, validation, OAuth2 client and actuator health checks come ready and well tested, which matters most for auth and data access.
+- **Why MapStruct and Lombok:** MapStruct generates DTO mappers at compile time (no reflection cost, mapping errors caught at build). Lombok removes getter and constructor boilerplate.
+- **Trade-off:** a JVM needs more memory than a Node process, which is why the backend container is given 1Gi.
+
+### Static analysis and formatting in the build
+
+- **Why SpotBugs and Spotless:** SpotBugs catches common bug patterns before they ship. Spotless with Google Java Format ends style debates and keeps diffs clean. Both run in `./gradlew build`, so CI enforces them.
+
+### React, Vite and shadcn/ui on the frontend
+
+- **Why Vite instead of Create React App:** fast dev server and builds, and CRA is no longer maintained.
+- **Why shadcn/ui and Tailwind instead of a packaged library like MUI:** the components are copied into the repo, built on accessible Radix primitives, and fully editable. There is no heavy runtime library to fight when customising the look.
+- **Why TanStack Query:** it handles caching, refetching and loading and error states for server data, so there is no hand-written fetch state or global store for API data.
+- **Why React Hook Form with Zod:** uncontrolled inputs keep forms fast, and Zod gives one typed schema for validation and TypeScript types.
+
+### Docker multi-stage builds
+
+- **Why:** the backend image is built with a JDK and shipped with only a JRE, and the frontend is compiled with Node and shipped as static files behind nginx. Images stay small, start faster and contain no build tools, which also reduces the attack surface.
+
+### Kubernetes on GKE Autopilot instead of a single VM or Cloud Run
+
+- **Why Kubernetes:** declarative manifests, rolling deployments with health-gated rollouts, and the same setup for the database, backend and frontend.
+- **Why Autopilot instead of Standard:** Google manages the nodes, so there is no node pool sizing or patching, and billing follows the pod resource requests.
+- **Why not Cloud Run:** it is cheaper and scales to zero, but this project deliberately runs on Kubernetes, and Postgres needs a persistent volume, which Cloud Run does not provide.
+- **Trade-off:** Autopilot has a fixed cluster fee, so it costs more than a small VM for a project this size.
+
+### GitHub Actions CI/CD with images tagged by git SHA
+
+- **Why:** the pipeline lives next to the code. Every image is tagged with the commit SHA, so each deployment maps to exactly one commit and a rollback is just deploying an earlier SHA. `latest` is only a convenience tag.
+- **Why `rollout status` gates:** the pipeline fails if the new pods never become healthy, instead of reporting success on a broken deploy.
+- **Why a service account key with minimal roles:** the deploy account can only push images and deploy to GKE, so a leaked key cannot touch other resources.
