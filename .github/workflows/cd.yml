@@ -4,9 +4,9 @@ on:
   workflow_dispatch: # manually trigger only
 
 env:
-  PROJECT_ID: devvault-b3fd84
+  PROJECT_ID: devvault-oct
   REGION: us-central1
-  REGISTRY: us-central1-docker.pkg.dev/devvault-b3fd84/devvault
+  REGISTRY: us-central1-docker.pkg.dev/devvault-oct/devvault
   CLUSTER: devvault-cluster
 
 jobs:

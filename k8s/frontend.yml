@@ -15,7 +15,7 @@ spec:
     spec:
       containers:
         - name: frontend
-          image: us-central1-docker.pkg.dev/devvault-b3fd84/devvault/frontend:latest
+          image: us-central1-docker.pkg.dev/devvault-oct/devvault/frontend:latest
           ports:
             - containerPort: 80
           resources:
