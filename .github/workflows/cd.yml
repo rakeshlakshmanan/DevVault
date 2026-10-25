@@ -1,7 +1,13 @@
 name: CD
 
 on:
-  workflow_dispatch: # manually trigger only
+  push:
+    branches: [main]
+  workflow_dispatch: # manual trigger still available
+
+concurrency:
+  group: cd
+  cancel-in-progress: false
 
 env:
   PROJECT_ID: devvault-oct
